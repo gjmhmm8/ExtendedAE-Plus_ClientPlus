@@ -1,0 +1,29 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "com.fish.extendedae_plus_client.mixin.core",
+  "compatibilityLevel": "JAVA_21",
+  "client": [
+    "ae.MixinAccessScreen",
+    "ae.MixinEncodingMenu",
+    "ae.MixinEncodingScreenRenamer",
+    "ae.MixinSelectedPatternTooltip",
+    "ae.QuartzCuttingKnifeItemMixin",
+    "ae.accessor.AccessorMEStorageScreen",
+    "extendedAE.MixinExAccessScreen",
+    "extendedAE.accessor.AccessorScreenExPatternTerminal",
+    "helperOverriding.HelperAccessScreen",
+    "helperOverriding.HelperExAccessScreen",
+    "recipeViewer.MixinEncodingHelper",
+    "recipeViewer.emi.MixinEncodePatternTransfer",
+    "recipeViewer.emi.MixinRecipeFillButton",
+    "recipeViewer.jei.MixinEncodePatternTransfer",
+    "recipeViewer.jei.accessor.AccessorBookmarkOverlay"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  },
+  "overwrites": {
+    "requireAnnotations": true
+  }
+}
