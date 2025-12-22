@@ -1,4 +1,4 @@
-package com.fish.extendedae_plus_client.mixin.core.ae;
+package com.fish.extendedae_plus_client.mixin.core.ae.menu;
 
 import appeng.api.crafting.PatternDetailsHelper;
 import appeng.api.storage.ITerminalHost;
@@ -28,7 +28,7 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 @Mixin(PatternEncodingTermMenu.class)
-public abstract class MixinEncodingMenu extends MEStorageMenu implements BridgePlanToEncode {
+public abstract class MixinEncodingTerminal extends MEStorageMenu implements BridgePlanToEncode {
     @Shadow
     @Final
     private RestrictedInputSlot encodedPatternSlot;
@@ -42,7 +42,7 @@ public abstract class MixinEncodingMenu extends MEStorageMenu implements BridgeP
     @Unique
     private boolean eaep$encodingDelayed;
 
-    public MixinEncodingMenu(MenuType<?> menuType, int id, Inventory ip, ITerminalHost host) {
+    public MixinEncodingTerminal(MenuType<?> menuType, int id, Inventory ip, ITerminalHost host) {
         super(menuType, id, ip, host);
     }
 

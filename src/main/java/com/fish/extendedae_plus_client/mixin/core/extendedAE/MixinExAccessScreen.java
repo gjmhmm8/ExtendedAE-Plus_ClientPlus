@@ -5,7 +5,7 @@ import appeng.client.gui.AEBaseScreen;
 import appeng.client.gui.me.patternaccess.PatternContainerRecord;
 import appeng.client.gui.style.ScreenStyle;
 import com.fish.extendedae_plus_client.impl.CacheProvider;
-import com.fish.extendedae_plus_client.mixin.impl.HelperPatternMoving;
+import com.fish.extendedae_plus_client.mixin.impl.helper.HelperPatternMoving;
 import com.glodblock.github.extendedae.client.gui.GuiExPatternTerminal;
 import com.glodblock.github.extendedae.container.ContainerExPatternTerminal;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;

@@ -1,4 +1,4 @@
-package com.fish.extendedae_plus_client.mixin.core.ae;
+package com.fish.extendedae_plus_client.mixin.core.ae.screen;
 
 import appeng.client.gui.me.common.MEStorageScreen;
 import appeng.client.gui.me.items.PatternEncodingTermScreen;
@@ -17,9 +17,9 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 @Mixin(PatternEncodingTermScreen.class)
-public class MixinEncodingScreenRenamer<TMenu extends PatternEncodingTermMenu>
+public class MixinEncodingTerminalRenamer<TMenu extends PatternEncodingTermMenu>
         extends MEStorageScreen<TMenu> {
-    public MixinEncodingScreenRenamer(TMenu menu, Inventory playerInventory, Component title, ScreenStyle style) {
+    public MixinEncodingTerminalRenamer(TMenu menu, Inventory playerInventory, Component title, ScreenStyle style) {
         super(menu, playerInventory, title, style);
     }
 

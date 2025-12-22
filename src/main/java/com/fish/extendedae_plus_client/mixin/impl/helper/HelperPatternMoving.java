@@ -1,4 +1,4 @@
-package com.fish.extendedae_plus_client.mixin.impl;
+package com.fish.extendedae_plus_client.mixin.impl.helper;
 
 import appeng.api.crafting.PatternDetailsHelper;
 import appeng.client.gui.AEBaseScreen;

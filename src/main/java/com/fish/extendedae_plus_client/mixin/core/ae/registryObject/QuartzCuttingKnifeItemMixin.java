@@ -1,4 +1,4 @@
-package com.fish.extendedae_plus_client.mixin.core.ae;
+package com.fish.extendedae_plus_client.mixin.core.ae.registryObject;
 
 import appeng.api.parts.IPartHost;
 import appeng.api.parts.SelectedPart;

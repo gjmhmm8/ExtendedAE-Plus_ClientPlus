@@ -8,7 +8,7 @@ import appeng.menu.me.common.GridInventoryEntry;
 import appeng.menu.me.common.MEStorageMenu;
 import com.fish.extendedae_plus_client.ExtendedAEPlusClient;
 import com.fish.extendedae_plus_client.integration.recipeViewer.HelperRecipeViewer;
-import com.fish.extendedae_plus_client.mixin.impl.HelperSearchField;
+import com.fish.extendedae_plus_client.mixin.impl.helper.HelperSearchField;
 import net.minecraft.client.Minecraft;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;

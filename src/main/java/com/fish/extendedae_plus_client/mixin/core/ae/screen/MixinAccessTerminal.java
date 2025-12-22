@@ -1,4 +1,4 @@
-package com.fish.extendedae_plus_client.mixin.core.ae;
+package com.fish.extendedae_plus_client.mixin.core.ae.screen;
 
 import appeng.api.implementations.blockentities.PatternContainerGroup;
 import appeng.client.gui.AEBaseScreen;
@@ -7,7 +7,7 @@ import appeng.client.gui.me.patternaccess.PatternContainerRecord;
 import appeng.client.gui.style.ScreenStyle;
 import appeng.menu.implementations.PatternAccessTermMenu;
 import com.fish.extendedae_plus_client.impl.CacheProvider;
-import com.fish.extendedae_plus_client.mixin.impl.HelperPatternMoving;
+import com.fish.extendedae_plus_client.mixin.impl.helper.HelperPatternMoving;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
@@ -24,7 +24,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import java.util.HashMap;
 
 @Mixin(PatternAccessTermScreen.class)
-public class MixinAccessScreen<TMenu extends PatternAccessTermMenu> extends AEBaseScreen<TMenu> {
+public class MixinAccessTerminal<TMenu extends PatternAccessTermMenu> extends AEBaseScreen<TMenu> {
     @Shadow
     @Final
     private HashMap<Long, PatternContainerRecord> byId;
@@ -32,7 +32,7 @@ public class MixinAccessScreen<TMenu extends PatternAccessTermMenu> extends AEBa
     @Unique
     private HelperPatternMoving eaep$helperMoving;
 
-    public MixinAccessScreen(TMenu menu, Inventory playerInventory, Component title, ScreenStyle style) {
+    public MixinAccessTerminal(TMenu menu, Inventory playerInventory, Component title, ScreenStyle style) {
         super(menu, playerInventory, title, style);
     }
 
