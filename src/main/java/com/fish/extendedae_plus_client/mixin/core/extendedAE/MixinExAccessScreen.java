@@ -59,7 +59,7 @@ public class MixinExAccessScreen<TMenu extends ContainerExPatternTerminal> exten
         CacheProvider.putProvider(this.byId.get(inventoryId));
     }
 
-    @Inject(method = "updateBeforeRender", at = @At("TAIL"))
+    @Inject(method = "containerTick", at = @At("TAIL"))
     private void onUpdating(CallbackInfo ci) {
         this.eaep$helperMoving.movePattern();
     }

@@ -59,7 +59,7 @@ public class MixinAccessScreen<TMenu extends PatternAccessTermMenu> extends AEBa
         CacheProvider.putProvider(this.byId.get(inventoryId));
     }
 
-    @Inject(method = "updateBeforeRender", at = @At("TAIL"))
+    @Inject(method = "containerTick", at = @At("TAIL"))
     private void onUpdating(CallbackInfo ci) {
         this.eaep$helperMoving.movePattern();
     }

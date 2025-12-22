@@ -8,7 +8,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.player.Inventory;
 import org.spongepowered.asm.mixin.Mixin;
 
-@Mixin(PatternAccessTermScreen.class)
+@Mixin(value = PatternAccessTermScreen.class, priority = 900)
 public class HelperAccessScreen<TMenu extends PatternAccessTermMenu> extends AEBaseScreen<TMenu> {
     public HelperAccessScreen(TMenu menu, Inventory playerInventory, Component title, ScreenStyle style) {
         super(menu, playerInventory, title, style);
@@ -17,5 +17,10 @@ public class HelperAccessScreen<TMenu extends PatternAccessTermMenu> extends AEB
     @Override
     public void onClose() {
         super.onClose();
+    }
+
+    @Override
+    public void containerTick() {
+        super.containerTick();
     }
 }

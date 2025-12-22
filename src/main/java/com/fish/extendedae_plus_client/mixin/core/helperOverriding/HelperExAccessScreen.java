@@ -18,4 +18,9 @@ public class HelperExAccessScreen<TMenu extends ContainerExPatternTerminal> exte
     public void onClose() {
         super.onClose();
     }
+
+    @Override
+    public void containerTick() {
+        super.containerTick();
+    }
 }
