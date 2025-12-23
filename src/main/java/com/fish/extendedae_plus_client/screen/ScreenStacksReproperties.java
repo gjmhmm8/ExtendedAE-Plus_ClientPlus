@@ -132,7 +132,6 @@ public class ScreenStacksReproperties<TMenu extends PatternEncodingTermMenu>
         var name = this.fieldRename.getValue();
         if (!(name.isBlank()
                 || name.equals(newStack.getOrDefault(DataComponents.ITEM_NAME, Component.empty()).getString())
-                || name.equals(newStack.getOrDefault(DataComponents.CUSTOM_NAME, Component.empty()).getString())
                 || name.equals(newStack.getItem().getName(newStack).getString()))) {
             newStack.set(DataComponents.CUSTOM_NAME, Component.literal(name));
         } else newStack.remove(DataComponents.CUSTOM_NAME);
