@@ -1,4 +1,4 @@
-package com.fish.extendedae_plus_client.impl;
+package com.fish.extendedae_plus_client.impl.cache;
 
 public final class CacheCrafting {
     private static int markedPlan = 0;

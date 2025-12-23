@@ -25,5 +25,7 @@
   "tooltip.item.ae2.processing_pattern.selected_provider": "§7SelectedProvider: §r%s",
   "tooltip.item.ae2.processing_pattern.auto_completable": "§7Auto Completable",
   "message.actionbar.item.ae2.certus_quartz_cutting_knife.block_name_coping.failed": "Failed to copy BlockName{%s}",
-  "message.actionbar.item.ae2.certus_quartz_cutting_knife.block_name_coping.success": "Copied BlockName{%s} to the clipboard"
+  "message.actionbar.item.ae2.certus_quartz_cutting_knife.block_name_coping.success": "Copied BlockName{%s} to the clipboard",
+  "extendedaeplus_client.configuration.autoPlateRepeat": "Auto Plating Repeat",
+  "extendedaeplus_client.configuration.autoPlateRepeat.tooltip": "Quartz Cutting Knife automatically makes quantities of each Inscriber Name Press for processing patterns with custom-named Items"
 }

@@ -25,5 +25,7 @@
   "tooltip.item.ae2.processing_pattern.selected_provider": "§7选择的供应器: §r%s",
   "tooltip.item.ae2.processing_pattern.auto_completable": "§7自动完成",
   "message.actionbar.item.ae2.certus_quartz_cutting_knife.block_name_coping.failed": "复制 方块/部件名{%s} 失败",
-  "message.actionbar.item.ae2.certus_quartz_cutting_knife.block_name_coping.success": "已复制 方块/部件名{%s} 到剪贴板"
+  "message.actionbar.item.ae2.certus_quartz_cutting_knife.block_name_coping.success": "已复制 方块/部件名{%s} 到剪贴板",
+  "extendedaeplus_client.configuration.autoPlateRepeat": "自动切割压印模板数",
+  "extendedaeplus_client.configuration.autoPlateRepeat.tooltip": "石英切割刀自动为编有有自定义名称物品的样板制作每个名称压印模板的数量"
 }

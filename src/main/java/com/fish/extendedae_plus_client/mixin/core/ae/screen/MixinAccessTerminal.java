@@ -5,8 +5,9 @@ import appeng.client.gui.AEBaseScreen;
 import appeng.client.gui.me.patternaccess.PatternAccessTermScreen;
 import appeng.client.gui.me.patternaccess.PatternContainerRecord;
 import appeng.client.gui.style.ScreenStyle;
+import appeng.client.gui.widgets.AETextField;
 import appeng.menu.implementations.PatternAccessTermMenu;
-import com.fish.extendedae_plus_client.impl.CacheProvider;
+import com.fish.extendedae_plus_client.impl.cache.CacheProvider;
 import com.fish.extendedae_plus_client.mixin.impl.helper.HelperPatternMoving;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import net.minecraft.client.gui.screens.Screen;
@@ -28,6 +29,9 @@ public class MixinAccessTerminal<TMenu extends PatternAccessTermMenu> extends AE
     @Shadow
     @Final
     private HashMap<Long, PatternContainerRecord> byId;
+    @Shadow
+    @Final
+    private AETextField searchField;
 
     @Unique
     private HelperPatternMoving eaep$helperMoving;
@@ -57,6 +61,12 @@ public class MixinAccessTerminal<TMenu extends PatternAccessTermMenu> extends AE
                                     Int2ObjectMap<ItemStack> slots,
                                     CallbackInfo ci) {
         CacheProvider.putProvider(this.byId.get(inventoryId));
+    }
+
+    @Inject(method = "updateBeforeRender", at = @At("HEAD"))
+    private void onRenderUpdating(CallbackInfo ci) {
+        if (this.eaep$helperMoving.isEmpty()) return;
+        this.searchField.setFocused(false);
     }
 
     @Inject(method = "containerTick", at = @At("TAIL"))

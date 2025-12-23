@@ -1,4 +1,4 @@
-package com.fish.extendedae_plus_client.impl;
+package com.fish.extendedae_plus_client.impl.cache;
 
 import appeng.api.crafting.IPatternDetails;
 import appeng.client.gui.me.patternaccess.PatternContainerRecord;

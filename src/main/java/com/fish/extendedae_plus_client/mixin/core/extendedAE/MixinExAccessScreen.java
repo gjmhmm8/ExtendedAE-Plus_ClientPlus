@@ -4,7 +4,8 @@ import appeng.api.implementations.blockentities.PatternContainerGroup;
 import appeng.client.gui.AEBaseScreen;
 import appeng.client.gui.me.patternaccess.PatternContainerRecord;
 import appeng.client.gui.style.ScreenStyle;
-import com.fish.extendedae_plus_client.impl.CacheProvider;
+import appeng.client.gui.widgets.AETextField;
+import com.fish.extendedae_plus_client.impl.cache.CacheProvider;
 import com.fish.extendedae_plus_client.mixin.impl.helper.HelperPatternMoving;
 import com.glodblock.github.extendedae.client.gui.GuiExPatternTerminal;
 import com.glodblock.github.extendedae.container.ContainerExPatternTerminal;
@@ -28,6 +29,9 @@ public class MixinExAccessScreen<TMenu extends ContainerExPatternTerminal> exten
     @Shadow
     @Final
     private HashMap<Long, PatternContainerRecord> byId;
+    @Shadow
+    @Final
+    private AETextField searchField;
 
     @Unique
     private HelperPatternMoving eaep$helperMoving;
@@ -47,6 +51,12 @@ public class MixinExAccessScreen<TMenu extends ContainerExPatternTerminal> exten
         this.eaep$helperMoving.clearReservation();
         if (!Screen.hasShiftDown())
             CacheProvider.clearPattern();
+    }
+
+    @Inject(method = "updateBeforeRender", at = @At("HEAD"))
+    private void onRenderUpdating(CallbackInfo ci) {
+        if (this.eaep$helperMoving.isEmpty()) return;
+        this.searchField.setFocused(false);
     }
 
     @Inject(method = "postFullUpdate", at = @At("TAIL"))

@@ -5,7 +5,7 @@ import appeng.client.gui.AEBaseScreen;
 import appeng.client.gui.me.patternaccess.PatternContainerRecord;
 import appeng.core.network.serverbound.InventoryActionPacket;
 import appeng.helpers.InventoryAction;
-import com.fish.extendedae_plus_client.impl.CacheProvider;
+import com.fish.extendedae_plus_client.impl.cache.CacheProvider;
 import com.mojang.datafixers.util.Pair;
 import net.minecraft.client.Minecraft;
 import net.minecraft.world.inventory.ClickType;
@@ -34,6 +34,10 @@ public final class HelperPatternMoving {
 
     public void clearReservation() {
         this.cacheUsedSlots.clear();
+    }
+
+    public boolean isEmpty() {
+        return this.patterns.isEmpty();
     }
 
     public void movePattern() {

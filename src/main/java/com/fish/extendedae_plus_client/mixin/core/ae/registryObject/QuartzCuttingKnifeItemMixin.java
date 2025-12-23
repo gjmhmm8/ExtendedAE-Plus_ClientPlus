@@ -4,6 +4,7 @@ import appeng.api.parts.IPartHost;
 import appeng.api.parts.SelectedPart;
 import appeng.core.definitions.AEItems;
 import appeng.items.tools.quartz.QuartzCuttingKnifeItem;
+import com.fish.extendedae_plus_client.impl.cache.CacheCuttingKnife;
 import com.fish.extendedae_plus_client.integration.ContextModLoaded;
 import com.fish.extendedae_plus_client.util.UtilKeyBuilder;
 import com.mojang.blaze3d.platform.Window;
@@ -76,7 +77,6 @@ public abstract class QuartzCuttingKnifeItemMixin {
         Level level = context.getLevel();
         Player player = context.getPlayer();
         if (!level.isClientSide() || player == null || !Screen.hasShiftDown()) {
-            cir.cancel();
             return;
         }
 
@@ -102,6 +102,7 @@ public abstract class QuartzCuttingKnifeItemMixin {
 
         // 拦截默认行为
         cir.setReturnValue(InteractionResult.sidedSuccess(level.isClientSide()));
+        CacheCuttingKnife.setHandlingBlockCopies(true);
     }
 
     /**

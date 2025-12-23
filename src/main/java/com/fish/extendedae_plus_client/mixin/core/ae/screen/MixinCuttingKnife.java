@@ -1,0 +1,129 @@
+package com.fish.extendedae_plus_client.mixin.core.ae.screen;
+
+import appeng.api.crafting.PatternDetailsHelper;
+import appeng.api.ids.AETags;
+import appeng.client.gui.AEBaseScreen;
+import appeng.client.gui.implementations.QuartzKnifeScreen;
+import appeng.client.gui.style.ScreenStyle;
+import appeng.menu.implementations.QuartzKnifeMenu;
+import com.fish.extendedae_plus_client.EAEPCConfig;
+import it.unimi.dsi.fastutil.ints.IntArrayList;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.components.EditBox;
+import net.minecraft.core.component.DataComponents;
+import net.minecraft.network.chat.Component;
+import net.minecraft.world.entity.player.Inventory;
+import net.minecraft.world.inventory.ClickType;
+import org.lwjgl.glfw.GLFW;
+import org.spongepowered.asm.mixin.Final;
+import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Shadow;
+import org.spongepowered.asm.mixin.Unique;
+import org.spongepowered.asm.mixin.injection.At;
+import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+
+import java.util.ArrayList;
+import java.util.List;
+
+@Mixin(QuartzKnifeScreen.class)
+public class MixinCuttingKnife extends AEBaseScreen<QuartzKnifeMenu> {
+    @Shadow
+    @Final
+    private EditBox name;
+
+    @Unique
+    private final List<String> eaep$customNames = new ArrayList<>();
+    @Unique
+    private final IntArrayList eaep$ingotsSlots = new IntArrayList();
+    @Unique
+    private boolean eaep$moving;
+    @Unique
+    private int eaep$repeating = -1;
+
+    public MixinCuttingKnife(QuartzKnifeMenu menu, Inventory playerInventory, Component title, ScreenStyle style) {
+        super(menu, playerInventory, title, style);
+    }
+
+    @Inject(method = "<init>", at = @At("TAIL"))
+    private void onInit(QuartzKnifeMenu menu,
+                        Inventory playerInventory,
+                        Component title,
+                        ScreenStyle style,
+                        CallbackInfo ci) {
+        for (int indexSlot = 0; indexSlot < playerInventory.items.size(); indexSlot++) {
+            var item = playerInventory.items.get(indexSlot);
+
+            if (item.is(AETags.METAL_INGOTS)) {
+                this.eaep$ingotsSlots.add(indexSlot);
+                continue;
+            }
+
+            var pattern = PatternDetailsHelper.decodePattern(item, Minecraft.getInstance().level);
+            if (pattern == null) continue;
+            for (var input : pattern.getInputs()) {
+                for (var stack : input.getPossibleInputs()) {
+                    var name = stack.what().get(DataComponents.CUSTOM_NAME);
+                    if (name == null) continue;
+                    this.eaep$customNames.add(name.getString());
+                }
+            }
+            for (var output : pattern.getOutputs()) {
+                var name = output.what().get(DataComponents.CUSTOM_NAME);
+                if (name == null) continue;
+                this.eaep$customNames.add(name.getString());
+            }
+        }
+    }
+
+    @Inject(method = "init", at = @At("TAIL"))
+    private void onInit(CallbackInfo ci) {
+        if (!(this.eaep$customNames.isEmpty() || this.eaep$ingotsSlots.isEmpty()))
+            this.name.setFocused(false);
+    }
+
+    @Inject(method = "containerTick", at = @At("TAIL"))
+    private void onTick(CallbackInfo ci) {
+        var player = Minecraft.getInstance().player;
+        var gameMode = Minecraft.getInstance().gameMode;
+        if (player == null || gameMode == null) return;
+
+        if (!this.eaep$moving) {
+            if (this.eaep$customNames.isEmpty() || this.eaep$ingotsSlots.isEmpty()) return;
+
+            this.eaep$moving = true;
+
+            this.getMenu().setName(this.eaep$customNames.getFirst());
+
+            if (EAEPCConfig.autoPlateRepeat.getAsInt() > 1) {
+                if (this.eaep$repeating == -1) {
+                    this.eaep$repeating = EAEPCConfig.autoPlateRepeat.getAsInt() - 1;
+                } else if (this.eaep$repeating == 0) {
+                    this.eaep$customNames.removeFirst();
+                }
+                this.eaep$repeating--;
+            } else this.eaep$customNames.removeFirst();
+
+            if (this.getMenu().getPlayerInventory().items
+                    .get(this.eaep$ingotsSlots.getFirst()).isEmpty())
+                this.eaep$ingotsSlots.removeFirst();
+
+            gameMode.handleInventoryMouseClick(
+                    this.getMenu().containerId,
+                    this.eaep$ingotsSlots.getFirst() + 2,
+                    GLFW.GLFW_MOUSE_BUTTON_LEFT,
+                    ClickType.QUICK_MOVE,
+                    player
+            );
+        } else {
+            this.eaep$moving = false;
+            gameMode.handleInventoryMouseClick(
+                    this.getMenu().containerId,
+                    1,
+                    GLFW.GLFW_MOUSE_BUTTON_LEFT,
+                    ClickType.QUICK_MOVE,
+                    player
+            );
+        }
+    }
+}
