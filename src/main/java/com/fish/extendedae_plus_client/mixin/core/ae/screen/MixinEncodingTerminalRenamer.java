@@ -6,7 +6,7 @@ import appeng.client.gui.style.ScreenStyle;
 import appeng.core.network.serverbound.InventoryActionPacket;
 import appeng.helpers.InventoryAction;
 import appeng.menu.me.items.PatternEncodingTermMenu;
-import com.fish.extendedae_plus_client.screen.ScreenStacksRename;
+import com.fish.extendedae_plus_client.screen.ScreenStacksReproperties;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.player.Inventory;
@@ -34,7 +34,7 @@ public class MixinEncodingTerminalRenamer<TMenu extends PatternEncodingTermMenu>
         if (!Screen.hasControlDown()) return;
 
         var stack = this.hoveredSlot.getItem();
-        var screen = new ScreenStacksRename<>(
+        var screen = new ScreenStacksReproperties<>(
                 (PatternEncodingTermScreen<TMenu>)(Object) this,
                 stack,
                 newStack -> {

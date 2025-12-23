@@ -16,7 +16,6 @@
     "extendedAE.MixinExAccessScreen",
     "extendedAE.accessor.AccessorScreenExPatternTerminal",
     "helperOverriding.HelperAccessScreen",
-    "helperOverriding.HelperCraftingCPUScreen",
     "helperOverriding.HelperExAccessScreen",
     "minecraft.MixinButton",
     "recipeViewer.MixinEncodingHelper",

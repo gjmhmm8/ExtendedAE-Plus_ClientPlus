@@ -4,7 +4,7 @@ import appeng.api.crafting.PatternDetailsHelper;
 import appeng.core.definitions.AEItems;
 import appeng.crafting.pattern.EncodedPatternItem;
 import com.fish.extendedae_plus_client.impl.CacheProvider;
-import com.fish.extendedae_plus_client.impl.CustomDataConstants;
+import com.fish.extendedae_plus_client.impl.ConstantCustomData;
 import com.fish.extendedae_plus_client.util.UtilKeyBuilder;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.component.DataComponents;
@@ -41,7 +41,7 @@ public class MixinSelectedPatternTooltip {
         var pattern = PatternDetailsHelper.decodePattern(stack, Minecraft.getInstance().level);
         if (pattern == null) return;
         var data = pattern.getPrimaryOutput().what().get(DataComponents.CUSTOM_DATA);
-        if (data == null || !data.contains(CustomDataConstants.autoCompletable.get())) return;
+        if (data == null || !data.contains(ConstantCustomData.autoCompletable.get())) return;
         tooltipComponents.add(UtilKeyBuilder.of(UtilKeyBuilder.tooltip)
                 .item(AEItems.PROCESSING_PATTERN)
                 .addStr("auto_completable")

@@ -7,10 +7,11 @@ import appeng.core.network.serverbound.GuiActionPacket;
 import appeng.core.network.serverbound.SwitchGuisPacket;
 import appeng.menu.me.crafting.CraftingCPUMenu;
 import appeng.menu.me.crafting.CraftingStatus;
-import appeng.menu.me.crafting.CraftingStatusMenu;
 import com.fish.extendedae_plus_client.impl.CacheCrafting;
+import com.fish.extendedae_plus_client.impl.ConstantCustomData;
 import com.fish.extendedae_plus_client.mixin.impl.helper.HelperButtonOnPressModifier;
 import net.minecraft.client.gui.components.Button;
+import net.minecraft.core.component.DataComponents;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.player.Inventory;
 import net.neoforged.neoforge.network.PacketDistributor;
@@ -43,26 +44,39 @@ public class MixinCraftingCPU<TMenu extends CraftingCPUMenu> extends AEBaseScree
     @Unique
     private void eaep$cancelCrafting(Button button) {
         this.getMenu().cancelCrafting();
+        for (var entry : this.status.getEntries()) {
+            if (entry.getWhat() == null) continue;
 
-        if (!(this.menu instanceof CraftingStatusMenu menu)) return;
-        var serial = menu.getSelectedCpuSerial();
-        if (serial < 0 || serial >= menu.cpuList.cpus().size()) return;
-        CacheCrafting.remove(menu.cpuList.cpus().get(serial).name());
+            var data = entry.getWhat().get(DataComponents.CUSTOM_DATA);
+            if (data == null) continue;
+
+            if (!data.contains(ConstantCustomData.autoCompletable.get()))
+                continue;
+
+            CacheCrafting.cancelPlan();
+            break;
+        }
     }
 
-    @Inject(method = "containerTick", at = @At("HEAD"))
-    private void onTick(CallbackInfo ci) {
-        if (this.status == null) return;
-        if (CacheCrafting.isEmpty()) return;
-        if (!(this.menu instanceof CraftingStatusMenu menu)) return;
+    @Inject(method = "postUpdate", at = @At("TAIL"))
+    private void onUpdate(CraftingStatus status, CallbackInfo ci) {
+        boolean matched = false;
+        for (var entry : this.status.getEntries()) {
+            if (entry.getWhat() == null) continue;
 
-        var serial = menu.getSelectedCpuSerial();
-        if (serial < 0 || serial >= menu.cpuList.cpus().size()) return;
-        if (CacheCrafting.planMatches(this.status.getEntries(),
-                menu.cpuList.cpus().get(serial).name())) {
+            var data = entry.getWhat().get(DataComponents.CUSTOM_DATA);
+            if (data == null) continue;
+
+            if (!data.contains(ConstantCustomData.autoCompletable.get()))
+                continue;
+            matched = entry.getPendingAmount() == 0;
+            break;
+        }
+        if (matched) {
             var packetCancelCrafting = new GuiActionPacket(
                     this.menu.containerId, "cancelCrafting", null);
             PacketDistributor.sendToServer(packetCancelCrafting);
+            CacheCrafting.cancelPlan();
         }
 
         if (!CacheCrafting.isOpening()) return;

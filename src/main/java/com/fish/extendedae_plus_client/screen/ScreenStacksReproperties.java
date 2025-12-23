@@ -11,32 +11,33 @@ import appeng.client.gui.widgets.ToggleButton;
 import appeng.core.localization.GuiText;
 import appeng.menu.SlotSemantics;
 import appeng.menu.me.items.PatternEncodingTermMenu;
-import com.fish.extendedae_plus_client.impl.CustomDataConstants;
+import com.fish.extendedae_plus_client.impl.ConstantCustomData;
 import com.fish.extendedae_plus_client.util.UtilKeyBuilder;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.component.CustomData;
+import org.lwjgl.glfw.GLFW;
 
 import java.util.List;
 import java.util.function.Consumer;
 
-public class ScreenStacksRename<TMenu extends PatternEncodingTermMenu>
+public class ScreenStacksReproperties<TMenu extends PatternEncodingTermMenu>
         extends AESubScreen<TMenu, PatternEncodingTermScreen<TMenu>> {
-    public static final String STYLE_PATH = "/screens/extendedae_plus_client/stacks_rename.json";
+    public static final String STYLE_PATH = "/screens/extendedae_plus_client/stacks_reproperties.json";
 
     private final ItemStack stack;
     private final Consumer<ItemStack> confirmer;
 
     private final ToggleButton buttonAutoCompletion;
-    private final ConfirmableTextField fieldName;
+    private final ConfirmableTextField fieldRename;
     private boolean autoCompletion;
 
-    public ScreenStacksRename(PatternEncodingTermScreen<TMenu> parent,
-                              ItemStack stack,
-                              Consumer<ItemStack> confirmer,
-                              boolean primaryOutput) {
+    public ScreenStacksReproperties(PatternEncodingTermScreen<TMenu> parent,
+                                    ItemStack stack,
+                                    Consumer<ItemStack> confirmer,
+                                    boolean primaryOutput) {
         super(parent, STYLE_PATH);
         this.stack = stack;
         this.confirmer = confirmer;
@@ -76,25 +77,26 @@ public class ScreenStacksRename<TMenu extends PatternEncodingTermMenu>
             this.widgets.add("button_auto_completion", this.buttonAutoCompletion);
 
             this.autoCompletion = stack.getOrDefault(DataComponents.CUSTOM_DATA, CustomData.EMPTY)
-                    .contains(CustomDataConstants.autoCompletable.get());
+                    .contains(ConstantCustomData.autoCompletable.get());
         } else this.buttonAutoCompletion = null;
 
         var font = Minecraft.getInstance().font;
         var fieldStyle = this.getStyle().getWidget("field_stacks_rename");
-        this.fieldName = new ConfirmableTextField(this.getStyle(),
+        this.fieldRename = new ConfirmableTextField(this.getStyle(),
                 font,
                 fieldStyle.getLeft() == null ? 0 : fieldStyle.getLeft(),
                 fieldStyle.getTop() == null ? 0 : fieldStyle.getTop(),
                 fieldStyle.getWidth(),
                 fieldStyle.getHeight());
-        this.fieldName.setBordered(false);
-        this.fieldName.setMaxLength(50);
-        this.fieldName.setTextColor(0xFFFFFF);
-        this.fieldName.setSelectionColor(0xFF000080);
-        this.fieldName.setVisible(true);
-        this.fieldName.setOnConfirm(this::confirm);
-        this.fieldName.setValue(stack.getHoverName().getString());
-        this.widgets.add("field_stacks_rename", this.fieldName);
+        this.fieldRename.setBordered(false);
+        this.fieldRename.setMaxLength(50);
+        this.fieldRename.setTextColor(0xFFFFFF);
+        this.fieldRename.setSelectionColor(0xFF000080);
+        this.fieldRename.setVisible(true);
+        this.fieldRename.setOnConfirm(this::confirm);
+        this.fieldRename.setValue(stack.getHoverName().getString());
+        this.fieldRename.setPlaceholder(stack.getHoverName());
+        this.widgets.add("field_stacks_rename", this.fieldRename);
 
         this.addClientSideSlot(new ClientDisplaySlot(GenericStack.fromItemStack(stack)),
                 SlotSemantics.MACHINE_OUTPUT);
@@ -104,6 +106,7 @@ public class ScreenStacksRename<TMenu extends PatternEncodingTermMenu>
     protected void init() {
         super.init();
 
+        this.setInitialFocus(this.fieldRename);
         this.setSlotsHidden(SlotSemantics.TOOLBOX, true);
     }
 
@@ -114,17 +117,29 @@ public class ScreenStacksRename<TMenu extends PatternEncodingTermMenu>
             this.buttonAutoCompletion.setState(this.autoCompletion);
     }
 
+    @Override
+    public boolean mouseClicked(double xCoord, double yCoord, int button) {
+        if (button != GLFW.GLFW_MOUSE_BUTTON_RIGHT || !this.fieldRename.isMouseOver(xCoord, yCoord))
+            return super.mouseClicked(xCoord, yCoord, button);
+        this.fieldRename.setValue("");
+        this.setFocused(this.fieldRename);
+        return true;
+    }
+
     private void confirm() {
         var newStack = this.stack.copy();
 
-        var name = this.fieldName.getValue();
-        if (!name.isBlank() && !name.equals(newStack.getHoverName().getString())) {
+        var name = this.fieldRename.getValue();
+        if (!(name.isBlank()
+                || name.equals(newStack.getOrDefault(DataComponents.ITEM_NAME, Component.empty()).getString())
+                || name.equals(newStack.getOrDefault(DataComponents.CUSTOM_NAME, Component.empty()).getString())
+                || name.equals(newStack.getItem().getName(newStack).getString()))) {
             newStack.set(DataComponents.CUSTOM_NAME, Component.literal(name));
-        }
+        } else newStack.remove(DataComponents.CUSTOM_NAME);
 
         CustomData.update(DataComponents.CUSTOM_DATA, newStack, data -> {
-            if (this.autoCompletion) data.putBoolean(CustomDataConstants.autoCompletable.get(), true);
-            else data.remove(CustomDataConstants.autoCompletable.get());
+            if (this.autoCompletion) data.putBoolean(ConstantCustomData.autoCompletable.get(), true);
+            else data.remove(ConstantCustomData.autoCompletable.get());
         });
 
         this.confirmer.accept(newStack);

@@ -16,7 +16,7 @@
   "screen.extendedae_plus_client.provider_list.delete_alias": "删除映射",
   "screen.extendedae_plus_client.provider_list.query": "输入关键词以搜索...",
   "screen.extendedae_plus_client.provider_list.remap_aliases": "重载映射表",
-  "screen.extendedae_plus_client.stacks_rename": "重命名",
+  "screen.extendedae_plus_client.stacks_reproperties": "属性设置",
   "screen.extendedae_plus_client.auto_completion.off": "自动完成: 关",
   "screen.extendedae_plus_client.auto_completion.on": "自动完成: 开",
   "screen.extendedae_plus_client.auto_completion.description": "以此物品作为最终产物的任务会在所有合成物被推送且打开终端后自动完成",

@@ -2,7 +2,7 @@
   "$schema": "../schema.json",
   "includes": ["../common/common.json"],
   "background": {
-    "texture": "guis/extendedae_plus_client/stacks_rename.png",
+    "texture": "guis/extendedae_plus_client/stacks_reproperties.png",
     "srcRect": [0, 0, 163, 72]
   },
   "slots": {
@@ -14,7 +14,7 @@
   "text": {
     "dialog_title": {
       "text": {
-        "translate": "screen.extendedae_plus_client.stacks_rename"
+        "translate": "screen.extendedae_plus_client.stacks_reproperties"
       },
       "position": {
         "left": 8,

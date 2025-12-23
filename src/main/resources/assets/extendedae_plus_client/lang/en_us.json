@@ -16,7 +16,7 @@
   "screen.extendedae_plus_client.provider_list.delete_alias": "Delete a map",
   "screen.extendedae_plus_client.provider_list.query": "Input to search...",
   "screen.extendedae_plus_client.provider_list.remap_aliases": "Remap",
-  "screen.extendedae_plus_client.stacks_rename": "Rename",
+  "screen.extendedae_plus_client.stacks_reproperties": "ReProperties",
   "screen.extendedae_plus_client.auto_completion.off": "Auto Completion: False",
   "screen.extendedae_plus_client.auto_completion.on": "Auto Completion: True",
   "screen.extendedae_plus_client.auto_completion.description": "Tasks that crafts this item will be completed automatically after all the patterns have been pushed and the terminal is opened.",
