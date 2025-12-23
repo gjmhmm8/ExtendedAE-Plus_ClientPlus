@@ -1,5 +1,6 @@
 TODO
     features
+        在有标记样板时默认使accessTerm的textField失焦
         自动编写重命名样板与制作压印模板
         为快捷物品名搜索添加keyConfig
     bugs

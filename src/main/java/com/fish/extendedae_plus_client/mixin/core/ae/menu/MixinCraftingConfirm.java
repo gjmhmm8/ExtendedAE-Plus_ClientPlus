@@ -2,8 +2,11 @@ package com.fish.extendedae_plus_client.mixin.core.ae.menu;
 
 import appeng.menu.AEBaseMenu;
 import appeng.menu.me.crafting.CraftConfirmMenu;
+import appeng.menu.me.crafting.CraftingPlanSummary;
 import com.fish.extendedae_plus_client.impl.CacheCrafting;
+import com.fish.extendedae_plus_client.impl.CustomDataConstants;
 import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.core.component.DataComponents;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.inventory.MenuType;
@@ -17,6 +20,8 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 public class MixinCraftingConfirm extends AEBaseMenu {
     @Shadow
     public Component cpuName;
+    @Shadow
+    private CraftingPlanSummary plan;
 
     public MixinCraftingConfirm(MenuType<?> menuType, int id, Inventory playerInventory, Object host) {
         super(menuType, id, playerInventory, host);
@@ -25,7 +30,12 @@ public class MixinCraftingConfirm extends AEBaseMenu {
     @Inject(method = "startJob", at = @At("HEAD"))
     private void onJobStart(CallbackInfo ci) {
         if (isServerSide()) return;
-        if (!Screen.hasControlDown()) return;
+        if (!Screen.hasControlDown() && this.plan.getEntries().stream().noneMatch(entry -> {
+            var data = entry.getWhat().get(DataComponents.CUSTOM_DATA);
+            if (data == null) return false;
+            return data.contains(CustomDataConstants.autoCompletable.get());
+        })) return;
+
         CacheCrafting.markPlan(this.cpuName);
     }
 }

@@ -41,7 +41,8 @@ public class MixinEncodingTerminalRenamer<TMenu extends PatternEncodingTermMenu>
                     var message = new InventoryActionPacket(
                             InventoryAction.SET_FILTER, this.hoveredSlot.index, newStack);
                     PacketDistributor.sendToServer(message);
-                }
+                },
+                this.hoveredSlot == this.menu.getProcessingOutputSlots()[0]
         );
         this.switchToScreen(screen);
         cir.setReturnValue(true);
