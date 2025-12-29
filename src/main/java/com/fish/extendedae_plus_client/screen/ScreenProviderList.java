@@ -1,337 +1,279 @@
 package com.fish.extendedae_plus_client.screen;
 
+import appeng.api.config.Settings;
+import appeng.api.config.TerminalStyle;
+import appeng.api.stacks.AEItemKey;
+import appeng.client.gui.AESubScreen;
+import appeng.client.gui.Icon;
+import appeng.client.gui.me.items.PatternEncodingTermScreen;
 import appeng.client.gui.me.patternaccess.PatternContainerRecord;
+import appeng.client.gui.style.PaletteColor;
+import appeng.client.gui.widgets.AETextField;
+import appeng.client.gui.widgets.Scrollbar;
+import appeng.client.gui.widgets.SettingToggleButton;
+import appeng.client.gui.widgets.TabButton;
+import appeng.core.AEConfig;
+import appeng.core.AppEng;
+import appeng.core.localization.GuiText;
+import appeng.menu.me.items.PatternEncodingTermMenu;
 import com.fish.extendedae_plus_client.impl.AliasGetter;
 import com.fish.extendedae_plus_client.util.UtilKeyBuilder;
+import com.fish.extendedae_plus_client.widgets.button.EAEPActionButton;
+import com.fish.extendedae_plus_client.widgets.button.EAEPActionItems;
+import guideme.document.LytRect;
+import guideme.render.SimpleRenderContext;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.components.Button;
-import net.minecraft.client.gui.components.EditBox;
+import net.minecraft.client.gui.ComponentPath;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Tooltip;
-import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.renderer.Rect2i;
+import net.minecraft.locale.Language;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.sounds.SoundEvents;
-import net.minecraft.world.item.ItemStack;
+import org.jetbrains.annotations.Nullable;
+import org.lwjgl.glfw.GLFW;
 
 import java.util.*;
 import java.util.function.Consumer;
 
-/**
- * 简单的供应器选择弹窗。
- * 展示若干个可点击的供应器条目，点击后发送带 providerId 的上传请求。
- */
-public class ScreenProviderList extends Screen {
-    private final Screen parent;
-    // 原始数据
-    private final List<Integer> ids;
-    private final List<String> names;
-    private final List<String> i18nKeys;
-    private final List<Integer> emptySlots;
+public class ScreenProviderList<TMenu extends PatternEncodingTermMenu,
+        TScreen extends PatternEncodingTermScreen<TMenu>> extends AESubScreen<TMenu, TScreen> {
+    public static final String PATH_STYLE = "/screens/extendedae_plus_client/provider_list.json";
 
-    // 分组后的数据（同名合并）
-    private final List<Long> gIds = new ArrayList<>();            // 代表条目使用的 providerId：选择空位数最多的那个
-    private final List<String> gNames = new ArrayList<>();        // 分组名（供应器名称）
-    private final List<String> gI18nKeys = new ArrayList<>();     // 分组名（供应器Key）
-    private final List<Integer> gTotalSlots = new ArrayList<>();  // 该名称下供应器空位总和
-    private final List<Integer> gCount = new ArrayList<>();       // 该名称下供应器数量
+    private static final int GUI_WIDTH = 195;
+    private static final int GUI_TOP_AND_BOTTOM_PADDING = 54;
 
-    // 过滤后的数据（由查询生成）
-    private final List<Long> fIds = new ArrayList<>();
-    private final List<String> fNames = new ArrayList<>();
-    private final List<Integer> fTotalSlots = new ArrayList<>();
-    private final List<Integer> fCount = new ArrayList<>();
+    private static final int GUI_PADDING_X = 8;
+    private static final int GUI_PADDING_Y = 6;
 
-    // 搜索框
-    private EditBox searchBox;
-    // 中文名输入框（用于添加映射）
-    private EditBox aliasInput;
+    private static final int GUI_HEADER_HEIGHT = 34;
+    private static final int GUI_FOOTER_HEIGHT = 8;
+    private static final int COLUMNS = 9;
 
-    private List<AliasGetter.KeywordGroup> query = new ArrayList<>();
-    private int selectedQueryIndex = -1;
+    private static final int PATTERN_PROVIDER_NAME_MARGIN_X = 2;
+    private static final int TEXT_MAX_WIDTH = 155;
+
+    private static final int ROW_HEIGHT = 18;
+
+    private static final Rect2i AREA_HEAD = new Rect2i(0, 0, GUI_WIDTH, GUI_HEADER_HEIGHT);
+    private static final Rect2i AREA_TAIL = new Rect2i(0, 162 + 16, GUI_WIDTH, GUI_FOOTER_HEIGHT);
+    private static final Rect2i AREA_SCROLLER_HEAD_PROVIDER_FOCUSED = new Rect2i(0, 34, GUI_WIDTH, ROW_HEIGHT);
+    private static final Rect2i AREA_SCROLLER_HEAD_PROVIDER = new Rect2i(0, 52, GUI_WIDTH, ROW_HEIGHT);
+    private static final Rect2i AREA_SCROLLER_PROVIDER_FOCUSED = new Rect2i(0, 70, GUI_WIDTH, ROW_HEIGHT);
+    private static final Rect2i AREA_SCROLLER_PROVIDER = new Rect2i(0, 88, GUI_WIDTH, ROW_HEIGHT);
+    private static final Rect2i AREA_SCROLLER_TAIL_PROVIDER_FOCUSED = new Rect2i(0, 106, GUI_WIDTH, ROW_HEIGHT);
+    private static final Rect2i AREA_SCROLLER_TAIL_PROVIDER = new Rect2i(0, 124, GUI_WIDTH, ROW_HEIGHT);
+    private static final Rect2i AREA_PROVIDER_FOCUSED = new Rect2i(0, 142, GUI_WIDTH, ROW_HEIGHT);
+    private static final Rect2i AREA_PROVIDER = new Rect2i(0, 160, GUI_WIDTH, ROW_HEIGHT);
+
+    private final AETextField fieldSearch;
+    private final AETextField fieldAlias;
+    private final Scrollbar scrollbar;
+
+    private int visibleRows = 0;
+    private int focusedRow = -1;
+
+    private final List<AliasGetter.KeywordGroup> queries = new ArrayList<>();
+    private int selectedQueryIndex;
     private String customQuery = "";
+    private boolean queryRefresh;
 
-    private boolean needsRefresh = false;
+    private final Collection<PatternContainerRecord> providersRaw;
+    private final Consumer<Long> applier;
 
-    private int page = 0;
-    private static final int PAGE_SIZE = 6;
+    private final Map<String, InfoProvider> providers = new HashMap<>();
+    private final List<InfoProvider> providersFiltered = new ArrayList<>();
 
-    private final List<Button> entryButtons = new ArrayList<>();
-
-    private final Consumer<Long> applierProviderSelection;
-
-    public ScreenProviderList(Screen parent,
+    public ScreenProviderList(TScreen previous,
                               Collection<PatternContainerRecord> providers,
                               Consumer<Long> applierProviderSelection) {
-        super(UtilKeyBuilder.of(UtilKeyBuilder.screen)
-                .addStr("provider_list")
-                .build());
-        this.parent = parent;
-        this.applierProviderSelection = applierProviderSelection;
+        super(previous, PATH_STYLE);
 
-        this.ids = new ArrayList<>();
-        this.names = new ArrayList<>();
-        this.i18nKeys = new ArrayList<>();
-        this.emptySlots = new ArrayList<>();
-        providers.forEach(record -> {
-            this.ids.add(record.getGroup().hashCode());
-            this.names.add(record.getGroup().name().getString());
-            this.i18nKeys.add(record.getGroup().name().toString());
+        this.providersRaw = providers;
+        this.applier = applierProviderSelection;
 
-            int stacks = 0;
-            for (ItemStack stack : record.getInventory()) {
-                if (stack.isEmpty())
-                    stacks++;
-            }
-            this.emptySlots.add(record.getInventory().size() - stacks);
+        this.imageWidth = GUI_WIDTH;
+
+        var styleTerminal = AEConfig.instance().getTerminalStyle();
+        this.addToLeftToolbar(new SettingToggleButton<>(
+                Settings.TERMINAL_STYLE, styleTerminal, this::toggleTerminalStyle));
+
+        this.widgets.add("button_back",
+                new TabButton(Icon.BACK,
+                        this.getMenu().getHost().getMainMenuIcon().getHoverName(),
+                        btn -> this.returnToParent())
+        );
+
+        this.addToLeftToolbar(new EAEPActionButton(EAEPActionItems.ALIAS_RELOAD,
+                $ -> this.reloadMappings()));
+        this.addToLeftToolbar(new EAEPActionButton(EAEPActionItems.ALIAS_ADD,
+                $ -> this.addMapping()));
+        this.addToLeftToolbar(new EAEPActionButton(EAEPActionItems.ALIAS_REMOVE,
+                $ -> this.removeMappings()));
+
+        this.scrollbar = this.widgets.addScrollBar("scrollbar", Scrollbar.BIG);
+        this.scrollbar.setHeight(5 * ROW_HEIGHT);
+
+        this.queries.addAll(AliasGetter.getRecipeKeywords());
+        this.selectedQueryIndex = this.queries.isEmpty() ? -1 : 0;
+
+        this.fieldSearch = this.widgets.addTextField("field_search");
+        this.fieldSearch.setMaxLength(64);
+        this.fieldSearch.setResponder(value -> {
+            if (value.equals(this.selectedQuery().getDescription().getString())) return;
+            if (this.queries.contains(AliasGetter.KeywordGroup.literal(value))) return;
+            this.queries.clear();
+            this.selectedQueryIndex = -1;
+            this.customQuery = value;
+            this.queryRefresh = true;
         });
+        this.fieldSearch.setPlaceholder(GuiText.SearchPlaceholder.text());
 
-        // 如果有来自 JEI 的最近处理名称，则作为初始查询
-        try {
-            var recent = AliasGetter.getRecipeKeywords();
-            if (recent != null && !recent.isEmpty()) {
-                this.query = new ArrayList<>(recent);
-                this.selectedQueryIndex = 0;
-            }
-        } catch (Throwable ignored) {
-        }
-        buildGroups();
-        applyFilter();
+        this.fieldAlias = this.widgets.addTextField("field_alias");
+        this.fieldAlias.setPlaceholder(UtilKeyBuilder.of(UtilKeyBuilder.screen)
+                .addStr("provider_list")
+                .addStr("alias")
+                .build());
     }
 
     @Override
     protected void init() {
-        this.clearWidgets();
-        entryButtons.clear();
+        this.visibleRows = Math.max(6, config.getTerminalStyle().getRows(
+                (this.height - GUI_HEADER_HEIGHT - GUI_FOOTER_HEIGHT - GUI_TOP_AND_BOTTOM_PADDING) / ROW_HEIGHT));
+        this.imageHeight = GUI_HEADER_HEIGHT + GUI_FOOTER_HEIGHT + this.visibleRows * ROW_HEIGHT;
+        super.init();
 
-        int centerX = this.width / 2;
-        int startY = this.height / 2 - 70;
+        this.queryRefresh = true;
+//        this.updateInfo();
+        this.scrollbar.setRange(0, this.providersFiltered.size() - this.visibleRows, 2);
+    }
 
-        // 搜索框（置于条目上方）
-        if (searchBox == null) {
-            searchBox = new EditBox(this.font, centerX - 120, startY - 25, 240, 18,
-                    UtilKeyBuilder.of(UtilKeyBuilder.screen)
-                            .addStr("provider_list")
-                            .addStr("query")
-                            .build());
-        } else {
-            // 重新定位，保持输入值
-            searchBox.setX(centerX - 120);
-            searchBox.setY(startY - 25);
-            searchBox.setWidth(240);
+    @Override
+    public void containerTick() {
+        super.containerTick();
+        if (this.queryRefresh) {
+            this.queryRefresh = false;
+            this.fieldSearch.setValue(this.selectedQuery().getDescription().getString());
+            this.rebuildKeywordsTooltip();
+            this.updateInfo();
         }
-        searchBox.setValue(selectedQuery().getDescription().getString());
+    }
 
-        searchBox.setResponder(text -> {
-            // 只有当输入真正发生变化时，才重置页码与过滤
-            if (text.equals(selectedQuery().getDescription().getString())) return;
-            customQuery = text;
-            // 切换候选词不触发, 手动输入时重置query
-            query.clear();
-            page = 0;
-            rebuildKeywordsTooltip();
-            applyFilter();
-            // 避免在回调中直接重建 UI，延迟到下一次 tick
-            needsRefresh = true;
+    @Override
+    public void drawFG(GuiGraphics guiGraphics, int offsetX, int offsetY, int mouseX, int mouseY) {
+        int textColor = this.style.getColor(PaletteColor.DEFAULT_TEXT_COLOR).toARGB();
+        var indexScroll = this.scrollbar.getCurrentScroll();
+
+        for (int indexRow = 0; indexRow < this.visibleRows; indexRow++) {
+            if (indexScroll + indexRow >= this.providersFiltered.size()) continue;
+
+            var provider = this.providersFiltered.get(indexScroll + indexRow);
+
+            if (provider.icon != null) {
+                var renderContext = new SimpleRenderContext(LytRect.empty(), guiGraphics);
+                renderContext.renderItem(
+                        provider.icon.getReadOnlyStack(),
+                        GUI_PADDING_X + PATTERN_PROVIDER_NAME_MARGIN_X,
+                        GUI_PADDING_Y + GUI_HEADER_HEIGHT + indexRow * ROW_HEIGHT - 1,
+                        8,
+                        8);
+            }
+
+            var name = provider.name.copy()
+                    .append(" [" + provider.availableSlots + "]");
+
+            var text = Language.getInstance().getVisualOrder(
+                    this.font.substrByWidth(name, TEXT_MAX_WIDTH - 10));
+
+            guiGraphics.drawString(this.font, text, GUI_PADDING_X + PATTERN_PROVIDER_NAME_MARGIN_X + 10,
+                    GUI_PADDING_Y + GUI_HEADER_HEIGHT + indexRow * ROW_HEIGHT - 1, textColor, false);
+        }
+    }
+
+    @Override
+    public void drawBG(GuiGraphics guiGraphics, int offsetX, int offsetY, int mouseX, int mouseY, float partialTicks) {
+        this.blit(guiGraphics, offsetX, offsetY, AREA_HEAD);
+
+        var indexScroll = this.scrollbar.getCurrentScroll();
+        var currentY = offsetY + GUI_HEADER_HEIGHT;
+
+        this.blit(guiGraphics, offsetX, currentY + this.visibleRows * ROW_HEIGHT, AREA_TAIL);
+
+        for (int indexRow = 0; indexRow < this.visibleRows; indexRow++) {
+            this.blit(guiGraphics, offsetX, currentY, this.getRowRenderPart(indexRow, indexScroll));
+            currentY += ROW_HEIGHT;
+        }
+    }
+
+    private Rect2i getRowRenderPart(int indexRow, int indexScroll) {
+        var flagFocused = indexRow + indexScroll == this.focusedRow;
+        if (indexRow == 0)
+            return flagFocused
+                    ? AREA_SCROLLER_HEAD_PROVIDER_FOCUSED
+                    : AREA_SCROLLER_HEAD_PROVIDER;
+        else if (indexRow < 5)
+            return flagFocused
+                    ? AREA_SCROLLER_PROVIDER_FOCUSED
+                    : AREA_SCROLLER_PROVIDER;
+        else if (indexRow == 5)
+            return flagFocused
+                    ? AREA_SCROLLER_TAIL_PROVIDER_FOCUSED
+                    : AREA_SCROLLER_TAIL_PROVIDER;
+        else return flagFocused
+                    ? AREA_PROVIDER_FOCUSED
+                    : AREA_PROVIDER;
+    }
+
+    private void updateInfo() {
+        if (this.providers.isEmpty()) {
+            this.providersRaw.forEach(record ->
+                    this.providers.computeIfAbsent(
+                                    record.getGroup().name().getString(),
+                                    name -> new InfoProvider(record))
+                            .add(record)
+            );
+        }
+
+        this.providersFiltered.clear();
+        this.providers.forEach((string, infoProvider) -> {
+            if (!this.selectedQuery().matches(string, infoProvider.i18nKey())) return;
+            this.providersFiltered.add(infoProvider);
         });
-        this.addRenderableWidget(searchBox);
-
-        rebuildKeywordsTooltip();
-
-        int start = page * PAGE_SIZE;
-        int end = Math.min(start + PAGE_SIZE, fIds.size());
-
-        int buttonWidth = 240;
-        int buttonHeight = 20;
-        int gap = 5;
-
-        for (int i = start; i < end; i++) {
-            int idx = i;
-            String label = buildLabel(idx);
-            Button btn = Button.builder(Component.literal(label), b -> onChoose(idx))
-                    .bounds(centerX - buttonWidth / 2, startY + (i - start) * (buttonHeight + gap), buttonWidth, buttonHeight)
-                    .build();
-            entryButtons.add(btn);
-            this.addRenderableWidget(btn);
-        }
-
-        // 分页按钮
-        int navY = startY + PAGE_SIZE * (buttonHeight + gap) + 10;
-        Button prev = Button.builder(Component.literal("<"), b -> changePage(-1))
-                .bounds(centerX - 60, navY, 20, 20)
-                .build();
-        Button next = Button.builder(Component.literal(">"), b -> changePage(1))
-                .bounds(centerX + 40, navY, 20, 20)
-                .build();
-        prev.active = page > 0;
-        next.active = (page + 1) * PAGE_SIZE < fIds.size();
-        this.addRenderableWidget(prev);
-        this.addRenderableWidget(next);
-
-        // 重载映射按钮（热重载 recipe_type_names.json）——移至下一行，与关闭按钮并排
-        Button reload = Button.builder(UtilKeyBuilder.of(UtilKeyBuilder.screen)
-                        .addStr("provider_list")
-                        .addStr("remap_aliases")
-                        .build(), b -> reloadMapping())
-                .bounds(centerX - 130, navY + 30, 80, 20)
-                .build();
-        this.addRenderableWidget(reload);
-
-        // 中文名输入框（用于新增映射的值）
-        if (aliasInput == null) {
-            aliasInput = new EditBox(this.font, centerX + 50, navY + 30, 120, 20,
-                    UtilKeyBuilder.of(UtilKeyBuilder.screen)
-                            .addStr("provider_list")
-                            .addStr("alias")
-                            .build());
-        } else {
-            aliasInput.setX(centerX + 50);
-            aliasInput.setY(navY + 30);
-            aliasInput.setWidth(120);
-        }
-        this.addRenderableWidget(aliasInput);
-
-        // 增加映射按钮（使用当前搜索关键字 -> 中文）
-        Button addMap = Button.builder(UtilKeyBuilder.of(UtilKeyBuilder.screen)
-                                .addStr("provider_list")
-                                .addStr("add_alias")
-                                .build(),
-                        b -> addMappingFromUI())
-                .bounds(centerX + 175, navY + 30, 60, 20)
-                .build();
-        this.addRenderableWidget(addMap);
-
-        // 删除映射（按中文值精确匹配删除）按钮
-        Button delByCn = Button.builder(UtilKeyBuilder.of(UtilKeyBuilder.screen)
-                                .addStr("provider_list")
-                                .addStr("delete_alias")
-                                .build(),
-                        b -> deleteMappingByCnFromUI())
-                .bounds(centerX + 240, navY + 30, 60, 20)
-                .build();
-        this.addRenderableWidget(delByCn);
-
-        // 关闭按钮
-        Button close = Button.builder(Component.translatable("gui.cancel"), b -> onClose())
-                .bounds(centerX - 40, navY + 30, 80, 20)
-                .build();
-        this.addRenderableWidget(close);
+        this.focusedRow = this.providersFiltered.isEmpty() ? -1 : 0;
     }
 
-    private void changePage(int delta) {
-        int newPage = page + delta;
-        if (newPage < 0) return;
-        if (newPage * PAGE_SIZE >= fIds.size()) return;
-        page = newPage;
-        // 避免在回调中直接重建 UI，改为下帧刷新
-        needsRefresh = true;
+    private void select(int indexProvider) {
+        var provider = this.providersFiltered.get(indexProvider);
+        if (provider == null) return;
+
+        this.applier.accept(provider.hashGroup);
+        this.returnToParent();
     }
 
-    private void reloadMapping() {
-        try {
-            AliasGetter.loadAliases();
-            var player = Minecraft.getInstance().player;
-            if (player != null) {
-                player.displayClientMessage(UtilKeyBuilder.of(UtilKeyBuilder.message)
-                                .addStr("provider_list")
-                                .addStr("remap_success")
-                                .build(),
-                        false);
-            }
-            // 重载后不强制刷新筛选，但如需立即应用到名称匹配，可手动编辑搜索框或翻页
-        } catch (Throwable t) {
-            var player = Minecraft.getInstance().player;
-            if (player != null) {
-                player.displayClientMessage(UtilKeyBuilder.of(UtilKeyBuilder.message)
-                                .addStr("provider_list")
-                                .addStr("remap_failed")
-                                .build(),
-                        false);
-            }
-        }
+    private AliasGetter.KeywordGroup selectedQuery() {
+        if (this.queryIndexValid())
+            return this.queries.get(this.selectedQueryIndex);
+        return AliasGetter.KeywordGroup.literal(this.customQuery);
     }
 
-    private String buildLabel(int idx) {
-        String name = fNames.get(idx);
-        int totalSlots = fTotalSlots.get(idx);
-        int count = fCount.get(idx);
-        // 不显示具体 id，显示合并统计：名称（总空位）x数量
-        return name + "  (" + totalSlots + ")  x" + count;
+    private void toggleTerminalStyle(SettingToggleButton<TerminalStyle> button, boolean backwards) {
+        var next = button.getNextValue(backwards);
+        AEConfig.instance().setTerminalStyle(next);
+        button.set(next);
+        this.reinitialize();
     }
 
-    private void onChoose(int idx) {
-        if (idx < 0 || idx >= fIds.size()) return;
-        this.applierProviderSelection.accept(fIds.get(idx));
-        this.onClose();
-    }
-
-    @Override
-    public void onClose() {
-        Minecraft.getInstance().setScreen(parent);
-    }
-
-    @Override
-    public boolean isPauseScreen() {
-        return false;
-    }
-
-    private void buildGroups() {
-        // 使用 LinkedHashMap 保持首次出现顺序
-        Map<String, Group> nameMap = new LinkedHashMap<>();
-        for (int i = 0; i < names.size(); i++) {
-            String name = names.get(i);
-            String i18nKey = i18nKeys.get(i);
-            long id = ids.get(i);
-            int slots = emptySlots.get(i);
-            Group g = nameMap.computeIfAbsent(name, k -> new Group());
-            g.count++;
-            g.totalSlots += Math.max(0, slots);
-            // 挑选空位最多的作为代表 id；若并列，保留先到者
-            if (slots > g.bestSlots) {
-                g.bestSlots = slots;
-                g.bestId = id;
-            }
-            if (!i18nKey.isBlank()) g.i18nKey = i18nKey;
-        }
-        for (Map.Entry<String, Group> e : nameMap.entrySet()) {
-            String name = e.getKey();
-            Group g = e.getValue();
-            gNames.add(name);
-            gI18nKeys.add(g.i18nKey);
-            gIds.add(g.bestId);
-            gTotalSlots.add(g.totalSlots);
-            gCount.add(g.count);
-        }
-    }
-
-    private static class Group {
-        long bestId = Long.MIN_VALUE;
-        int bestSlots = Integer.MIN_VALUE;
-        int totalSlots = 0;
-        int count = 0;
-        String i18nKey = "";
-    }
-
-    private void applyFilter() {
-        fIds.clear();
-        fNames.clear();
-        fTotalSlots.clear();
-        fCount.clear();
-        for (int i = 0; i < gIds.size(); i++) {
-            String name = gNames.get(i);
-            String i18nKey = gI18nKeys.get(i);
-            if (selectedQuery().match(name, i18nKey)) {
-                fIds.add(gIds.get(i));
-                fNames.add(name);
-                fTotalSlots.add(gTotalSlots.get(i));
-                fCount.add(gCount.get(i));
-            }
-        }
+    private void reinitialize() {
+        this.children().removeAll(this.renderables);
+        this.renderables.clear();
+        this.init();
     }
 
     private void rebuildKeywordsTooltip() {
-        if (query.size() <= 1) {
-            searchBox.setTooltip(Tooltip.create(Component.empty()));
+        if (this.queries.size() <= 1) {
+            this.fieldSearch.setTooltip(Tooltip.create(Component.empty()));
             return;
         }
 
@@ -339,109 +281,51 @@ public class ScreenProviderList extends Screen {
                 .addStr("provider_list")
                 .addStr("candidate_keywords")
                 .build();
-        for (int i = 0; i < query.size(); i++) {
-            var group = query.get(i);
+        for (int i = 0; i < this.queries.size(); i++) {
+            var group = this.queries.get(i);
             if (i == selectedQueryIndex) candidateQuery
                     .append(Component.literal("\n→ ").withStyle(ChatFormatting.GREEN))
                     .append(group.getDescription());
             else candidateQuery.append("\n").append(group.getDescription().copy().withStyle(ChatFormatting.GRAY));
         }
-        searchBox.setTooltip(Tooltip.create(candidateQuery));
+        this.fieldSearch.setTooltip(Tooltip.create(candidateQuery));
     }
 
-    private AliasGetter.KeywordGroup selectedQuery() {
-        if (queryIndexValid()) return query.get(selectedQueryIndex);
-        else return new AliasGetter.KeywordGroup(customQuery);
+    private int getHoveredLineIndex(double x, double y) {
+        x = x - leftPos - GUI_PADDING_X;
+        y = y - topPos - GUI_HEADER_HEIGHT;
+        if (x < 0 || y < 0) {
+            return -1;
+        }
+        if (x >= ROW_HEIGHT * COLUMNS || y >= visibleRows * ROW_HEIGHT) {
+            return -1;
+        }
+
+        var rowIndex = this.scrollbar.getCurrentScroll() + y / ROW_HEIGHT;
+        if (rowIndex < 0 || rowIndex >= this.providersFiltered.size()) {
+            return -1;
+        }
+        return (int) rowIndex;
+    }
+
+    private void blit(GuiGraphics guiGraphics, int offsetX, int offsetY, Rect2i srcRect) {
+        var texture = AppEng.makeId("textures/guis/extendedae_plus_client/provider_list.png");
+        guiGraphics.blit(texture, offsetX, offsetY, srcRect.getX(), srcRect.getY(), srcRect.getWidth(),
+                srcRect.getHeight());
     }
 
     private boolean queryIndexValid() {
-        return selectedQueryIndex >= 0 && selectedQueryIndex < query.size();
+        return this.selectedQueryIndex >= 0
+                && this.selectedQueryIndex < this.queries.size();
     }
 
-    @Override
-    public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
-        if (searchBox != null && searchBox.isFocused() && searchBox.keyPressed(keyCode, scanCode, modifiers)) {
-            return true;
-        }
-        return super.keyPressed(keyCode, scanCode, modifiers);
-    }
-
-    @Override
-    public boolean charTyped(char codePoint, int modifiers) {
-        if (searchBox != null && searchBox.charTyped(codePoint, modifiers)) {
-            return true;
-        }
-        return super.charTyped(codePoint, modifiers);
-    }
-
-    @Override
-    public boolean mouseClicked(double mouseX, double mouseY, int button) {
-        // 右键点击搜索框区域时，清空搜索框内容并刷新
-        if (button == 1 && this.searchBox != null) {
-            if (this.searchBox.isMouseOver(mouseX, mouseY) || this.aliasInput.isMouseOver(mouseX, mouseY)) {
-                if (Minecraft.getInstance().player != null)
-                    Minecraft.getInstance().player.playSound(SoundEvents.UI_BUTTON_CLICK.value(), 0.1F, 1.0F);
-
-                if (this.searchBox.isMouseOver(mouseX, mouseY)) {
-                    if (!this.searchBox.getValue().isEmpty()) this.searchBox.setValue("");
-                    this.customQuery = "";
-                    this.query.clear();
-                    this.page = 0;
-                    rebuildKeywordsTooltip();
-                    applyFilter();
-                    this.needsRefresh = true;
-                } else {
-                    if (!this.aliasInput.getValue().isEmpty()) this.aliasInput.setValue("");
-                }
-                return true;
-            }
-        }
-        return super.mouseClicked(mouseX, mouseY, button);
-    }
-
-    @Override
-    public boolean mouseScrolled(double mouseX, double mouseY, double scrollX, double scrollY) {
-        if (query.size() <= 1 || this.searchBox == null)
-            return super.mouseScrolled(mouseX, mouseY, scrollX, scrollY);
-        if (Minecraft.getInstance().player != null)
-            Minecraft.getInstance().player.playSound(SoundEvents.UI_BUTTON_CLICK.value(), 0.1F, 1.0F);
-
-        boolean reverse = scrollY > 0;
-
-        // 滚轮切换候选词
-        if (this.searchBox.isMouseOver(mouseX, mouseY) && queryIndexValid()) {
-            if (selectedQueryIndex == -1) selectedQueryIndex = 0;
-
-            if (reverse && selectedQueryIndex == 0) selectedQueryIndex = query.size() - 1;
-            else if (reverse) selectedQueryIndex--;
-            else if (selectedQueryIndex == query.size() - 1) selectedQueryIndex = 0;
-            else selectedQueryIndex++;
-
-            this.page = 0;
-            applyFilter();
-            this.needsRefresh = true;
-            return true;
-        }
-
-        return super.mouseScrolled(mouseX, mouseY, scrollX, scrollY);
-    }
-
-    @Override
-    public void tick() {
-        super.tick();
-        if (needsRefresh) {
-            needsRefresh = false;
-            // 重新构建当前屏幕内容
-            init();
-        }
-    }
-
-    private void addMappingFromUI() {
-        String searchKey = selectedQuery().getDescription().getString();
-        String aliasToSet = aliasInput == null ? "" : aliasInput.getValue().trim();
+    private void addMapping() {
+        var selectedQuery = this.selectedQuery();
+        var searchKey = selectedQuery.getDescription().getString();
+        var aliasToSet = this.fieldAlias.getValue().trim();
         var player = Minecraft.getInstance().player;
 
-        if (selectedQuery().isEmpty()) {
+        if (selectedQuery.isEmpty()) {
             if (player != null) player.displayClientMessage(
                     UtilKeyBuilder.of(UtilKeyBuilder.message)
                             .addStr("provider_list")
@@ -473,17 +357,14 @@ public class ScreenProviderList extends Screen {
                     false);
 
             // 将刚添加的中文名写入搜索框，作为当前查询
-            this.query.remove(selectedQuery());
+            this.queries.clear();
 
-            var newAliasGroup = new AliasGetter.KeywordGroup(aliasToSet);
-            this.query.addFirst(newAliasGroup);
+            var newAliasGroup = AliasGetter.KeywordGroup.literal(aliasToSet);
+            this.queries.addFirst(newAliasGroup);
             this.selectedQueryIndex = 0;
 
-            if (this.searchBox != null)
-                this.searchBox.setValue(aliasToSet);
-            applyFilter();
-            page = 0;
-            needsRefresh = true;
+            this.fieldSearch.setValue(aliasToSet);
+            this.queryRefresh = true;
         } else {
             if (player != null) player.displayClientMessage(
                     UtilKeyBuilder.of(UtilKeyBuilder.message)
@@ -496,9 +377,8 @@ public class ScreenProviderList extends Screen {
         }
     }
 
-    // 使用中文值精确匹配删除映射
-    private void deleteMappingByCnFromUI() {
-        String aliasToDelete = aliasInput == null ? "" : aliasInput.getValue().trim();
+    private void removeMappings() {
+        var aliasToDelete = this.fieldAlias.getValue();
         var player = Minecraft.getInstance().player;
         if (aliasToDelete.isEmpty()) {
             if (player != null) player.displayClientMessage(
@@ -508,8 +388,7 @@ public class ScreenProviderList extends Screen {
                             .addStr("empty_alias")
                             .build(),
                     false);
-            if (this.aliasInput != null)
-                this.aliasInput.setValue(this.searchBox.getValue());
+            this.fieldAlias.setValue(this.fieldSearch.getValue());
             return;
         }
         int removed = AliasGetter.removeAliases(aliasToDelete);
@@ -522,8 +401,8 @@ public class ScreenProviderList extends Screen {
                             .args(removed, aliasToDelete)
                             .build(),
                     false);
-            applyFilter();
-            needsRefresh = true;
+            this.queryRefresh = true;
+            this.queries.clear();
         } else {
             if (player != null) player.displayClientMessage(
                     UtilKeyBuilder.of(UtilKeyBuilder.message)
@@ -533,6 +412,155 @@ public class ScreenProviderList extends Screen {
                             .args(aliasToDelete)
                             .build(),
                     false);
+        }
+    }
+
+    private void reloadMappings() {
+        AliasGetter.tryLoadAliases();
+        var player = Minecraft.getInstance().player;
+        if (player != null) {
+            player.displayClientMessage(UtilKeyBuilder.of(UtilKeyBuilder.message)
+                            .addStr("provider_list")
+                            .addStr("remap_success")
+                            .build(),
+                    false);
+        }
+        this.queries.clear();
+    }
+
+    @Override
+    public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
+        if (this.focusedRow >= 0 && (keyCode == GLFW.GLFW_KEY_ENTER
+                || keyCode == GLFW.GLFW_KEY_KP_ENTER)) {
+            this.select(this.focusedRow);
+            return true;
+        }
+
+        if (this.providersFiltered.isEmpty())
+            return super.keyPressed(keyCode, scanCode, modifiers);
+
+        var direction = 0;
+        if (keyCode == GLFW.GLFW_KEY_UP)
+            direction = -1;
+        else if (keyCode == GLFW.GLFW_KEY_DOWN)
+            direction = 1;
+        else return super.keyPressed(keyCode, scanCode, modifiers);
+
+        var indexScroll = this.scrollbar.getCurrentScroll();
+        if ((this.focusedRow == this.visibleRows + indexScroll - 1 && direction == 1)
+                || (this.focusedRow == indexScroll && direction == -1))
+            this.scrollbar.setCurrentScroll(indexScroll + direction);
+        this.focusedRow = Math.clamp(this.focusedRow + direction, 0, this.providersFiltered.size() - 1);
+        return true;
+    }
+
+    @Override
+    public boolean mouseClicked(double xCoord, double yCoord, int button) {
+        if (button == 1) {
+            if (this.fieldSearch.isMouseOver(xCoord, yCoord)) {
+                this.fieldSearch.setValue("");
+                this.rebuildKeywordsTooltip();
+            } else if (this.fieldAlias.isMouseOver(xCoord, yCoord)) {
+                this.fieldAlias.setValue("");
+            }
+        } else if (button == 0) {
+            var indexProvider = this.getHoveredLineIndex(xCoord, yCoord);
+            if (indexProvider >= 0) {
+                this.focusedRow = indexProvider + this.scrollbar.getCurrentScroll();
+                return true;
+            }
+        }
+
+        return super.mouseClicked(xCoord, yCoord, button);
+    }
+
+    @Override
+    public boolean mouseReleased(double mouseX, double mouseY, int button) {
+        if (button == 0) {
+            var indexProvider = this.getHoveredLineIndex(mouseX, mouseY);
+            if (indexProvider >= 0 && this.focusedRow == indexProvider + this.scrollbar.getCurrentScroll()) {
+                this.select(indexProvider);
+                return true;
+            }
+        }
+
+        return super.mouseReleased(mouseX, mouseY, button);
+    }
+
+    @Override
+    public boolean mouseScrolled(double x, double y, double deltaX, double deltaY) {
+        if (this.queries.size() <= 1 || this.fieldSearch == null)
+            return super.mouseScrolled(x, y, deltaX, deltaY);
+        if (Minecraft.getInstance().player != null)
+            Minecraft.getInstance().player.playSound(SoundEvents.UI_BUTTON_CLICK.value(), 0.1F, 1.0F);
+
+        boolean reverse = deltaY > 0;
+
+        if (this.fieldSearch.isMouseOver(x, y) && this.queryIndexValid()) {
+            if (this.selectedQueryIndex == -1) this.selectedQueryIndex = 0;
+
+            if (reverse && this.selectedQueryIndex == 0) this.selectedQueryIndex = this.queries.size() - 1;
+            else if (reverse) this.selectedQueryIndex--;
+            else if (this.selectedQueryIndex == this.queries.size() - 1) this.selectedQueryIndex = 0;
+            else this.selectedQueryIndex++;
+
+            this.queryRefresh = true;
+            return true;
+        }
+
+        return super.mouseScrolled(x, y, deltaX, deltaY);
+    }
+
+    @Override
+    protected void changeFocus(ComponentPath path) {
+        super.changeFocus(path);
+        this.focusedRow = -1;
+    }
+
+    @Override
+    public void onClose() {
+        this.applier.accept(null);
+        this.returnToParent();
+    }
+
+    private static class InfoProvider {
+        public final Component name;
+
+        @Nullable
+        public final AEItemKey icon;
+        public long hashGroup;
+        public int availableSlots = 0;
+
+        private int availableSlotSingle = 0;
+
+        public InfoProvider(PatternContainerRecord record) {
+            this.name = record.getGroup().name();
+            this.icon = record.getGroup().icon();
+            this.hashGroup = record.getGroup().hashCode();
+            this.addSlotLimit(record);
+        }
+
+        public String i18nKey() {
+            if (this.icon == null) return "";
+            return this.icon.getId().toLanguageKey();
+        }
+
+        public void add(PatternContainerRecord record) {
+            if (this.addSlotLimit(record))
+                this.hashGroup = record.getGroup().hashCode();
+        }
+
+        private boolean addSlotLimit(PatternContainerRecord record) {
+            var usedSlots = 0;
+            for (var stack : record.getInventory()) {
+                if (!stack.isEmpty())
+                    usedSlots++;
+            }
+            var slots = record.getInventory().size() - usedSlots;
+            var flagBigger = slots > this.availableSlotSingle;
+            this.availableSlots += slots;
+            this.availableSlotSingle = slots;
+            return flagBigger;
         }
     }
 }

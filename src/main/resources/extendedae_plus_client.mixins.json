@@ -12,7 +12,7 @@
     "ae.screen.MixinAccessTerminal",
     "ae.screen.MixinCraftingCPU",
     "ae.screen.MixinCuttingKnife",
-    "ae.screen.MixinEncodingTerminalRenamer",
+    "ae.screen.MixinEncodingTerminalReproperties",
     "ae.screen.widgets.MixinFakeSlot",
     "extendedAE.MixinExAccessScreen",
     "extendedAE.accessor.AccessorScreenExPatternTerminal",

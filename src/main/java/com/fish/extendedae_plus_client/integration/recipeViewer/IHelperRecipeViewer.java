@@ -14,7 +14,7 @@ public interface IHelperRecipeViewer {
     List<GenericStack> getFavorites();
 
     @Nullable
-    Pair<Boolean, Boolean> getPulled(int mouseKey);
+    Pair<Boolean, Boolean> matchesKey(int mouseKey);
 
     default boolean isCheatMode() {
         return false;

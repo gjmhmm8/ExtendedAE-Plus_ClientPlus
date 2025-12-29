@@ -2,6 +2,8 @@ package com.fish.extendedae_plus_client;
 
 import net.neoforged.fml.ModContainer;
 import net.neoforged.fml.config.ModConfig;
+import net.neoforged.neoforge.client.gui.ConfigurationScreen;
+import net.neoforged.neoforge.client.gui.IConfigScreenFactory;
 import net.neoforged.neoforge.common.ModConfigSpec;
 
 public final class EAEPCConfig {
@@ -19,5 +21,7 @@ public final class EAEPCConfig {
 
     static void init(ModContainer modContainer) {
         modContainer.registerConfig(ModConfig.Type.CLIENT, SPEC, "extendedae_plus/client.toml");
+
+        modContainer.registerExtensionPoint(IConfigScreenFactory.class, ConfigurationScreen::new);
     }
 }

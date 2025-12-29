@@ -38,7 +38,7 @@ public class JeiHelper implements IHelperRecipeViewer {
     }
 
     @Override
-    public @Nullable Pair<Boolean, Boolean> getPulled(int mouseKey) {
+    public @Nullable Pair<Boolean, Boolean> matchesKey(int mouseKey) {
         boolean match = false;
         boolean stack = false;
         boolean toInv = true;

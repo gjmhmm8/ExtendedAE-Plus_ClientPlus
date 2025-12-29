@@ -2,6 +2,7 @@ package com.fish.extendedae_plus_client.mixin.core.ae.menu;
 
 import appeng.api.crafting.PatternDetailsHelper;
 import appeng.api.storage.ITerminalHost;
+import appeng.client.gui.me.items.PatternEncodingTermScreen;
 import appeng.core.definitions.AEBlocks;
 import appeng.menu.me.common.MEStorageMenu;
 import appeng.menu.me.items.PatternEncodingTermMenu;
@@ -34,6 +35,7 @@ public abstract class MixinEncodingTerminal extends MEStorageMenu implements Bri
     private RestrictedInputSlot encodedPatternSlot;
     @Shadow
     public EncodingMode mode;
+
     @Shadow
     public abstract void encode();
 
@@ -121,13 +123,17 @@ public abstract class MixinEncodingTerminal extends MEStorageMenu implements Bri
                         record.getGroup().hashCode());
             }
         } else {
-            var screenProviderList = new ScreenProviderList(Minecraft.getInstance().screen,
+            if (!(Minecraft.getInstance().screen instanceof PatternEncodingTermScreen<?> screen)) return;
+            var screenProviderList = new ScreenProviderList<>(screen,
                     CacheProvider.getProviderList().values(),
-                    hashGroup -> CacheProvider.markPattern(
-                            PatternDetailsHelper.decodePattern(existingPattern, this.getPlayer().level()),
-                            Math.toIntExact(hashGroup))
+                    hashGroup -> {
+                        if (hashGroup == null) return;
+                        CacheProvider.markPattern(
+                                PatternDetailsHelper.decodePattern(existingPattern, this.getPlayer().level()),
+                                Math.toIntExact(hashGroup));
+                    }
             );
-            Minecraft.getInstance().setScreen(screenProviderList);
+            screen.switchToScreen(screenProviderList);
         }
     }
 

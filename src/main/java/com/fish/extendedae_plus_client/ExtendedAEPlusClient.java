@@ -7,8 +7,6 @@ import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.fml.ModContainer;
 import net.neoforged.fml.common.Mod;
-import net.neoforged.neoforge.client.gui.ConfigurationScreen;
-import net.neoforged.neoforge.client.gui.IConfigScreenFactory;
 
 @Mod(value = ExtendedAEPlusClient.MODID, dist = Dist.CLIENT)
 public class ExtendedAEPlusClient {
@@ -17,8 +15,6 @@ public class ExtendedAEPlusClient {
     public ExtendedAEPlusClient(IEventBus eventBus, ModContainer modContainer) {
         EAEPCConfig.init(modContainer);
         ContextModLoaded.init();
-
-        modContainer.registerExtensionPoint(IConfigScreenFactory.class, ConfigurationScreen::new);
     }
 
     public static ResourceLocation getLocation(String path) {

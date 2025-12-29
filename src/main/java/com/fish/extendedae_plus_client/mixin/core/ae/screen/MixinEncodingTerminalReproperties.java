@@ -17,13 +17,12 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 @Mixin(PatternEncodingTermScreen.class)
-public class MixinEncodingTerminalRenamer<TMenu extends PatternEncodingTermMenu>
+public class MixinEncodingTerminalReproperties<TMenu extends PatternEncodingTermMenu>
         extends MEStorageScreen<TMenu> {
-    public MixinEncodingTerminalRenamer(TMenu menu, Inventory playerInventory, Component title, ScreenStyle style) {
+    public MixinEncodingTerminalReproperties(TMenu menu, Inventory playerInventory, Component title, ScreenStyle style) {
         super(menu, playerInventory, title, style);
     }
 
-    @SuppressWarnings("unchecked")
     @Inject(method = "mouseClicked", at = @At("HEAD"), cancellable = true)
     private void onMouseClick(double xCoord, double yCoord, int btn, CallbackInfoReturnable<Boolean> cir) {
         if (this.minecraft == null) return;
@@ -35,12 +34,12 @@ public class MixinEncodingTerminalRenamer<TMenu extends PatternEncodingTermMenu>
 
         var stack = this.hoveredSlot.getItem();
         var screen = new ScreenStacksReproperties<>(
-                (PatternEncodingTermScreen<TMenu>)(Object) this,
+                this,
                 stack,
                 newStack -> {
-                    var message = new InventoryActionPacket(
+                    var packetUpdateStack = new InventoryActionPacket(
                             InventoryAction.SET_FILTER, this.hoveredSlot.index, newStack);
-                    PacketDistributor.sendToServer(message);
+                    PacketDistributor.sendToServer(packetUpdateStack);
                 },
                 this.hoveredSlot == this.menu.getProcessingOutputSlots()[0]
         );

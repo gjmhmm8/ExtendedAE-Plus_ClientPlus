@@ -26,6 +26,8 @@ public class MixinCraftingConfirm extends AEBaseMenu {
     @Inject(method = "startJob", at = @At("HEAD"))
     private void onJobStart(CallbackInfo ci) {
         if (isServerSide()) return;
+
+        if (this.plan == null) return;
         if (this.plan.getEntries().stream().noneMatch(entry -> {
             var data = entry.getWhat().get(DataComponents.CUSTOM_DATA);
             if (data == null) return false;

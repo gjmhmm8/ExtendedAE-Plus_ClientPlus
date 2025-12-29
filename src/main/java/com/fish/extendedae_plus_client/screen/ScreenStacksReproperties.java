@@ -1,16 +1,16 @@
 package com.fish.extendedae_plus_client.screen;
 
 import appeng.api.stacks.GenericStack;
+import appeng.client.gui.AEBaseScreen;
 import appeng.client.gui.AESubScreen;
 import appeng.client.gui.Icon;
 import appeng.client.gui.me.common.ClientDisplaySlot;
-import appeng.client.gui.me.items.PatternEncodingTermScreen;
 import appeng.client.gui.widgets.ConfirmableTextField;
 import appeng.client.gui.widgets.TabButton;
 import appeng.client.gui.widgets.ToggleButton;
 import appeng.core.localization.GuiText;
 import appeng.menu.SlotSemantics;
-import appeng.menu.me.items.PatternEncodingTermMenu;
+import appeng.menu.me.common.MEStorageMenu;
 import com.fish.extendedae_plus_client.impl.ConstantCustomData;
 import com.fish.extendedae_plus_client.util.UtilKeyBuilder;
 import net.minecraft.client.Minecraft;
@@ -23,9 +23,9 @@ import org.lwjgl.glfw.GLFW;
 import java.util.List;
 import java.util.function.Consumer;
 
-public class ScreenStacksReproperties<TMenu extends PatternEncodingTermMenu>
-        extends AESubScreen<TMenu, PatternEncodingTermScreen<TMenu>> {
-    public static final String STYLE_PATH = "/screens/extendedae_plus_client/stacks_reproperties.json";
+public class ScreenStacksReproperties<TMenu extends MEStorageMenu>
+        extends AESubScreen<TMenu, AEBaseScreen<TMenu>> {
+    public static final String PATH_STYLE = "/screens/extendedae_plus_client/stacks_reproperties.json";
 
     private final ItemStack stack;
     private final Consumer<ItemStack> confirmer;
@@ -34,11 +34,11 @@ public class ScreenStacksReproperties<TMenu extends PatternEncodingTermMenu>
     private final ConfirmableTextField fieldRename;
     private boolean autoCompletion;
 
-    public ScreenStacksReproperties(PatternEncodingTermScreen<TMenu> parent,
+    public ScreenStacksReproperties(AEBaseScreen<TMenu> parent,
                                     ItemStack stack,
                                     Consumer<ItemStack> confirmer,
                                     boolean primaryOutput) {
-        super(parent, STYLE_PATH);
+        super(parent, PATH_STYLE);
         this.stack = stack;
         this.confirmer = confirmer;
 

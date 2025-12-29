@@ -1,6 +1,5 @@
 TODO
     features
-        自动编写重命名样板与制作压印模板
-        为快捷物品名搜索添加keyConfig
+        改providerListStyle的guideME
     bugs
     tests

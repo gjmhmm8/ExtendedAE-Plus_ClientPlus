@@ -35,7 +35,7 @@ public class EmiHelper implements IHelperRecipeViewer {
     }
 
     @Override
-    public @Nullable Pair<Boolean, Boolean> getPulled(int mouseKey) {
+    public @Nullable Pair<Boolean, Boolean> matchesKey(int mouseKey) {
         if (EmiConfig.cheatOneToCursor.matchesMouse(mouseKey))
             return new Pair<>(false, false);
         else if (EmiConfig.cheatOneToInventory.matchesMouse(mouseKey))

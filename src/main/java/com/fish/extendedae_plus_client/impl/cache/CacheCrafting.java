@@ -9,7 +9,7 @@ public final class CacheCrafting {
     }
 
     public static void cancelPlan() {
-        markedPlan--;
+        markedPlan = Math.max(markedPlan - 1, 0);
     }
 
     public static boolean isEmpty() {

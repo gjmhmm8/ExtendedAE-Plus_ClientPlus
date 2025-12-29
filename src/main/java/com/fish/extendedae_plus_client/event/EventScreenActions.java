@@ -2,10 +2,12 @@ package com.fish.extendedae_plus_client.event;
 
 import appeng.api.stacks.AEKeyType;
 import appeng.api.stacks.GenericStack;
+import appeng.client.gui.AEBaseScreen;
 import appeng.core.AEConfig;
 import appeng.helpers.InventoryAction;
 import appeng.menu.me.common.GridInventoryEntry;
 import appeng.menu.me.common.MEStorageMenu;
+import com.fish.extendedae_plus_client.EAEPCKeyMapping;
 import com.fish.extendedae_plus_client.ExtendedAEPlusClient;
 import com.fish.extendedae_plus_client.integration.recipeViewer.HelperRecipeViewer;
 import com.fish.extendedae_plus_client.mixin.impl.helper.HelperSearchField;
@@ -42,14 +44,14 @@ public final class EventScreenActions {
         var serial = findHoveredStackSerial(menu);
         if (serial == null) return;
 
-        var pulled = HelperRecipeViewer.getPulled(event.getButton());
+        var pulled = HelperRecipeViewer.matchesKey(event.getButton());
         if (pulled != null) {
             InventoryAction action;
             if (pulled.getFirst() && pulled.getSecond())
                 action = InventoryAction.SHIFT_CLICK;
             else if (pulled.getFirst())
                 action = InventoryAction.PICKUP_OR_SET_DOWN;
-            else if (pulled.getSecond()) // 这里没有对应的action
+            else if (pulled.getSecond()) // 这里没有对应的 action
                 action = InventoryAction.SHIFT_CLICK;
             else action = InventoryAction.PICKUP_SINGLE;
 
@@ -68,10 +70,15 @@ public final class EventScreenActions {
     @SubscribeEvent
     public static void onKeyPressedPre(ScreenEvent.KeyPressed.Pre event) {
         if (Minecraft.getInstance().player == null) return;
-        if (event.getKeyCode() == GLFW.GLFW_KEY_F) {
-            // 仅当鼠标确实悬停在 JEI 配料上时触发
+        if (EAEPCKeyMapping.fillToSearchField.get().matches(event.getKeyCode(), event.getScanCode())) {
+            // 增强功能, 现在可以检测所有EMIIngredient和screen里的ItemStack了
             // 大概会在一格有多个(?)stack的时候出bug, 但是真的会有那种时候吗?
             GenericStack stack = HelperRecipeViewer.getHoveredStacks().getFirst();
+            if (stack == null && Minecraft.getInstance().screen instanceof AEBaseScreen<?> screen) {
+                var slot = screen.getSlotUnderMouse();
+                if (slot == null) return;
+                stack = GenericStack.fromItemStack(slot.getItem());
+            }
             if (stack == null) return;
             String name = stack.what().getDisplayName().getString();
 
@@ -81,8 +88,8 @@ public final class EventScreenActions {
             } else if (Minecraft.getInstance().screen instanceof HelperSearchField helper) {
                 helper.getSearchField().setValue(name);
                 helper.eaep$setSearchText(name);
-                event.setCanceled(true);
             }
+            event.setCanceled(true);
         }
     }
 

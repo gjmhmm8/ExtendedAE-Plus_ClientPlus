@@ -32,8 +32,8 @@ public class HelperRecipeViewer {
         return getViewer().map(IHelperRecipeViewer::getFavorites).orElse(List.of());
     }
 
-    public static @Nullable Pair<Boolean, Boolean> getPulled(int mouseKey) {
-        return getViewer().map(viewer -> viewer.getPulled(mouseKey)).orElse(null);
+    public static @Nullable Pair<Boolean, Boolean> matchesKey(int mouseKey) {
+        return getViewer().map(viewer -> viewer.matchesKey(mouseKey)).orElse(null);
     }
 
     public static boolean isCheatMode() {
