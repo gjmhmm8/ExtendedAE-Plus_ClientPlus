@@ -146,8 +146,6 @@ public class ScreenProviderList<TMenu extends PatternEncodingTermMenu,
         super.init();
 
         this.queryRefresh = true;
-//        this.updateInfo();
-        this.scrollbar.setRange(0, this.providersFiltered.size() - this.visibleRows, 2);
     }
 
     @Override
@@ -158,6 +156,7 @@ public class ScreenProviderList<TMenu extends PatternEncodingTermMenu,
             this.fieldSearch.setValue(this.selectedQuery().getDescription().getString());
             this.rebuildKeywordsTooltip();
             this.updateInfo();
+            this.scrollbar.setRange(0, this.providersFiltered.size() - this.visibleRows, 2);
         }
     }
 
