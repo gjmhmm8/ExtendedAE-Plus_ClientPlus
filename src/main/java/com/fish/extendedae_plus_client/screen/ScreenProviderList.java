@@ -458,7 +458,6 @@ public class ScreenProviderList<TMenu extends PatternEncodingTermMenu,
         if (button == 1) {
             if (this.fieldSearch.isMouseOver(xCoord, yCoord)) {
                 this.fieldSearch.setValue("");
-                this.rebuildKeywordsTooltip();
             } else if (this.fieldAlias.isMouseOver(xCoord, yCoord)) {
                 this.fieldAlias.setValue("");
             }

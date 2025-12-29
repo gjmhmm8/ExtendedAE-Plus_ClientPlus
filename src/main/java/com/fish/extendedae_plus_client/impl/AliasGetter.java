@@ -14,7 +14,6 @@ import net.minecraft.world.item.crafting.RecipeHolder;
 import net.neoforged.fml.loading.FMLPaths;
 
 import java.io.IOException;
-import java.lang.reflect.Method;
 import java.nio.file.Files;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -254,11 +253,10 @@ public class AliasGetter {
         public boolean matches(String nameKey, String i18nKey) {
             if (this.keywords.stream().map(String::isBlank).allMatch(Predicate.isEqual(true))) return true;
 
-            boolean descMatched = nameMatches(this.description.getString(), nameKey);
-            boolean keywordsMatched = keywords.stream().anyMatch(
-                    key -> nameMatches(key, nameKey) || i18nKeyMatches(key, i18nKey));
-
-            return descMatched || keywordsMatched;
+            return nameMatches(this.description.getString(), nameKey)
+                    || this.keywords.stream().anyMatch(
+                            key -> nameMatches(key, nameKey)
+                                    || i18nKeyMatches(key, i18nKey));
         }
 
         private static boolean nameMatches(String matchKey, String searchKey) {
@@ -267,10 +265,10 @@ public class AliasGetter {
 
             if (ContextModLoaded.jech.isLoaded()) {
                 try {
-                    Method jecContains = Class.forName("me.towdium.jecharacters.utils.Match")
-                            .getMethod("contains", CharSequence.class, CharSequence.class);
-                    Object result = jecContains.invoke(null, matchKey, searchKey);
-                    if (result instanceof Boolean resultBool) return resultBool;
+                    var methodContains = Class.forName("me.towdium.jecharacters.utils.Match")
+                            .getMethod("contains", String.class, CharSequence.class);
+                    return (boolean) methodContains.invoke(
+                            null, searchKey.toLowerCase(), matchKey.toLowerCase());
                 } catch (Throwable ignore) {
                 }
             }
