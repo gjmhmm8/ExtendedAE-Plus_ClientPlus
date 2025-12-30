@@ -1,4 +1,4 @@
-package com.fish.extendedae_plus_client.event;
+package com.fish.extendedae_plus_client.impl.event;
 
 import appeng.api.stacks.AEKeyType;
 import appeng.api.stacks.GenericStack;

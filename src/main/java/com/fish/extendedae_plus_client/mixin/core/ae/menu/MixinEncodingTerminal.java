@@ -10,7 +10,7 @@ import appeng.menu.slot.RestrictedInputSlot;
 import appeng.parts.encoding.EncodingMode;
 import com.fish.extendedae_plus_client.impl.cache.CacheProvider;
 import com.fish.extendedae_plus_client.mixin.impl.bridge.BridgePlanToEncode;
-import com.fish.extendedae_plus_client.screen.ScreenProviderList;
+import com.fish.extendedae_plus_client.render.screen.ScreenProviderList;
 import com.fish.extendedae_plus_client.util.UtilKeyBuilder;
 import com.glodblock.github.extendedae.common.EAESingletons;
 import net.minecraft.client.Minecraft;

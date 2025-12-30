@@ -1,4 +1,4 @@
-package com.fish.extendedae_plus_client.screen;
+package com.fish.extendedae_plus_client.render.screen;
 
 import appeng.api.stacks.GenericStack;
 import appeng.client.gui.AEBaseScreen;

@@ -1,4 +1,4 @@
-package com.fish.extendedae_plus_client.widgets.button;
+package com.fish.extendedae_plus_client.render.widgets.button;
 
 import java.util.function.Consumer;
 

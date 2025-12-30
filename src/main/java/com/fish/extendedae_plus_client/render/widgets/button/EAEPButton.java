@@ -1,4 +1,4 @@
-package com.fish.extendedae_plus_client.widgets.button;
+package com.fish.extendedae_plus_client.render.widgets.button;
 
 import appeng.client.gui.Icon;
 import appeng.client.gui.style.Blitter;

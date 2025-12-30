@@ -1,4 +1,4 @@
-package com.fish.extendedae_plus_client.widgets.button;
+package com.fish.extendedae_plus_client.render.widgets.button;
 
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.neoforged.neoforge.network.PacketDistributor;

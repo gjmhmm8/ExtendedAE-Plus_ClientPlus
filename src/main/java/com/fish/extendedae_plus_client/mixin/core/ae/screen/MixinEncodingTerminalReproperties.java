@@ -6,7 +6,7 @@ import appeng.client.gui.style.ScreenStyle;
 import appeng.core.network.serverbound.InventoryActionPacket;
 import appeng.helpers.InventoryAction;
 import appeng.menu.me.items.PatternEncodingTermMenu;
-import com.fish.extendedae_plus_client.screen.ScreenStacksReproperties;
+import com.fish.extendedae_plus_client.render.screen.ScreenStacksReproperties;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.player.Inventory;

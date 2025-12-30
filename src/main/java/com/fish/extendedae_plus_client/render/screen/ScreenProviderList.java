@@ -1,4 +1,4 @@
-package com.fish.extendedae_plus_client.screen;
+package com.fish.extendedae_plus_client.render.screen;
 
 import appeng.api.config.Settings;
 import appeng.api.config.TerminalStyle;
@@ -17,9 +17,9 @@ import appeng.core.AppEng;
 import appeng.core.localization.GuiText;
 import appeng.menu.me.items.PatternEncodingTermMenu;
 import com.fish.extendedae_plus_client.impl.AliasGetter;
+import com.fish.extendedae_plus_client.render.widgets.button.EAEPActionButton;
+import com.fish.extendedae_plus_client.render.widgets.button.EAEPActionItems;
 import com.fish.extendedae_plus_client.util.UtilKeyBuilder;
-import com.fish.extendedae_plus_client.widgets.button.EAEPActionButton;
-import com.fish.extendedae_plus_client.widgets.button.EAEPActionItems;
 import guideme.document.LytRect;
 import guideme.render.SimpleRenderContext;
 import net.minecraft.ChatFormatting;

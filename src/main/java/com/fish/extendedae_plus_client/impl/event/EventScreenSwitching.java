@@ -1,4 +1,4 @@
-package com.fish.extendedae_plus_client.event;
+package com.fish.extendedae_plus_client.impl.event;
 
 import appeng.client.gui.implementations.QuartzKnifeScreen;
 import appeng.client.gui.me.common.MEStorageScreen;
