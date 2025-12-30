@@ -6,7 +6,7 @@ import appeng.client.gui.AEBaseScreen;
 import appeng.client.gui.implementations.QuartzKnifeScreen;
 import appeng.client.gui.style.ScreenStyle;
 import appeng.menu.implementations.QuartzKnifeMenu;
-import com.fish.extendedae_plus_client.EAEPCConfig;
+import com.fish.extendedae_plus_client.config.EAEPCConfig;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.components.EditBox;

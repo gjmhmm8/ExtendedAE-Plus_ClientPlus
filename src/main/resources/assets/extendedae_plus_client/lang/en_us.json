@@ -28,6 +28,8 @@
   "message.actionbar.item.ae2.certus_quartz_cutting_knife.block_name_coping.success": "Copied BlockName{%s} to the clipboard",
   "extendedae_plus_client.configuration.autoPlateRepeat": "Auto Plating Repeat",
   "extendedae_plus_client.configuration.autoPlateRepeat.tooltip": "Quartz Cutting Knife automatically makes quantities of each Inscriber Name Press for processing patterns with custom-named Items",
+  "extendedae_plus_client.configuration.modeEncodingTransfer": "Recipe Transfer Merge Mode",
+  "extendedae_plus_client.configuration.modeEncodingTransfer.tooltip": "Controls how items are automatically merged by the terminal when using [Shift] for recipe transfer.\nNONE - No changes made\nMERGE_ADJACENCY - Only merges adjacent items\nINDEPENDENCE - No merging at all",
   "key.category.extendedae_plus_client": "ExtendedAE Plus [Client]",
   "key.extendedae_plus_client.fill_to_search_field": "Search item under mouse"
 }

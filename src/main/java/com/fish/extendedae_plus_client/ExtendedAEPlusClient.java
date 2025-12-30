@@ -1,5 +1,6 @@
 package com.fish.extendedae_plus_client;
 
+import com.fish.extendedae_plus_client.config.EAEPCConfig;
 import com.fish.extendedae_plus_client.integration.ContextModLoaded;
 import com.mojang.logging.LogUtils;
 import net.minecraft.resources.ResourceLocation;

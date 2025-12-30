@@ -1,5 +1,6 @@
-package com.fish.extendedae_plus_client;
+package com.fish.extendedae_plus_client.config;
 
+import com.fish.extendedae_plus_client.ExtendedAEPlusClient;
 import com.fish.extendedae_plus_client.util.UtilKeyBuilder;
 import com.mojang.blaze3d.platform.InputConstants;
 import net.minecraft.client.KeyMapping;

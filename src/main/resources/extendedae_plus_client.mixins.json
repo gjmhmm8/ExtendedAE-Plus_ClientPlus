@@ -4,6 +4,7 @@
   "package": "com.fish.extendedae_plus_client.mixin.core",
   "compatibilityLevel": "JAVA_21",
   "client": [
+    "ae.MixinEncoding",
     "ae.accessor.AccessorMEStorageScreen",
     "ae.menu.MixinCraftingConfirm",
     "ae.menu.MixinEncodingTerminal",

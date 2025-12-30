@@ -28,6 +28,8 @@
   "message.actionbar.item.ae2.certus_quartz_cutting_knife.block_name_coping.success": "已复制 方块/部件名{%s} 到剪贴板",
   "extendedae_plus_client.configuration.autoPlateRepeat": "自动切割压印模板数",
   "extendedae_plus_client.configuration.autoPlateRepeat.tooltip": "石英切割刀自动为编有有自定义名称物品的样板制作每个名称压印模板的数量",
+  "extendedae_plus_client.configuration.modeEncodingTransfer": "配方转移合并模式",
+  "extendedae_plus_client.configuration.modeEncodingTransfer.tooltip": "控制[Shift]进行配方转移时终端对物品的自动合并\nNONE - 不进行改动\nMERGE_ADJACENCY - 只合并相邻的物品\nINDEPENDENCE - 完全不合并",
   "key.category.extendedae_plus_client": "ExtendedAE Plus [Client]",
   "key.extendedae_plus_client.fill_to_search_field": "搜索鼠标指向的物品"
 }
