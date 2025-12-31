@@ -32,6 +32,7 @@ public class HelperRecipeViewer {
         return getViewer().map(IHelperRecipeViewer::getFavorites).orElse(List.of());
     }
 
+    /// @return Pair<Boolean: Stack, Boolean: ToInv>
     public static @Nullable Pair<Boolean, Boolean> matchesKey(int mouseKey) {
         return getViewer().map(viewer -> viewer.matchesKey(mouseKey)).orElse(null);
     }

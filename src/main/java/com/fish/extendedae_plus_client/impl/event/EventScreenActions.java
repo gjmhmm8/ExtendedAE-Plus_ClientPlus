@@ -1,6 +1,6 @@
 package com.fish.extendedae_plus_client.impl.event;
 
-import appeng.api.stacks.AEKeyType;
+import appeng.api.stacks.AEItemKey;
 import appeng.api.stacks.GenericStack;
 import appeng.client.gui.AEBaseScreen;
 import appeng.core.AEConfig;
@@ -10,6 +10,7 @@ import com.fish.extendedae_plus_client.ExtendedAEPlusClient;
 import com.fish.extendedae_plus_client.config.EAEPCKeyMapping;
 import com.fish.extendedae_plus_client.integration.recipeViewer.HelperRecipeViewer;
 import com.fish.extendedae_plus_client.mixin.impl.helper.HelperSearchField;
+import com.mojang.datafixers.util.Pair;
 import net.minecraft.client.Minecraft;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
@@ -38,28 +39,19 @@ public final class EventScreenActions {
             return;
         }
 
-        var serial = findHoveredStackSerial(menu);
-        if (serial == null) return;
+        var infoStack = findHoveredStack(menu);
+        if (infoStack == null) return;
 
         var pulled = HelperRecipeViewer.matchesKey(event.getButton());
         if (pulled != null) {
-            InventoryAction action;
-            if (pulled.getFirst() && pulled.getSecond())
-                action = InventoryAction.SHIFT_CLICK;
-            else if (pulled.getFirst())
-                action = InventoryAction.PICKUP_OR_SET_DOWN;
-            else if (pulled.getSecond()) // 这里没有对应的 action
-                action = InventoryAction.SHIFT_CLICK;
-            else action = InventoryAction.PICKUP_SINGLE;
-
-            menu.handleInteraction(serial, action);
-
+            menu.handleInteraction(
+                    infoStack.getSecond(), getAction(infoStack, pulled));
             isPulled = true;
             return;
         }
 
         if (event.getButton() == GLFW.GLFW_MOUSE_BUTTON_MIDDLE) {
-            menu.handleInteraction(serial, InventoryAction.AUTO_CRAFT);
+            menu.handleInteraction(infoStack.getSecond(), InventoryAction.AUTO_CRAFT);
             event.setCanceled(true);
         }
     }
@@ -92,19 +84,48 @@ public final class EventScreenActions {
         }
     }
 
-    private static @Nullable Long findHoveredStackSerial(MEStorageMenu menu) {
+    private static @Nullable Pair<GenericStack, Long> findHoveredStack(MEStorageMenu menu) {
         if (menu.getClientRepo() == null) return null;
 
         var stacks = HelperRecipeViewer.getHoveredStacks();
         var stack = stacks.isEmpty() ? null : stacks.getFirst();
         if (stack == null) return null;
-        if (!AEKeyType.items().equals(stack.what().getType())) return null;
 
         for (var entry : menu.getClientRepo().getAllEntries()) {
-            if (!stack.what().equals(entry.getWhat())) continue;
+            if (!stack.what().equals(entry.getWhat())) {
+                if (!(stack.what() instanceof AEItemKey itemKey)) continue;
 
-            return entry.getSerial();
+                var unwrapped = GenericStack.unwrapItemStack(itemKey.toStack());
+                if (unwrapped == null || !unwrapped.what().equals(entry.getWhat())) continue;
+                stack = unwrapped;
+            }
+
+            return new Pair<>(stack, entry.getSerial());
         }
         return null;
+    }
+
+    private static InventoryAction getAction(Pair<GenericStack, Long> infoStack,
+                                             Pair<Boolean, Boolean> pulled) {
+        InventoryAction action;
+
+        if (infoStack.getFirst().what() instanceof AEItemKey) {
+            if (pulled.getFirst() && pulled.getSecond())
+                action = InventoryAction.SHIFT_CLICK;
+            else if (pulled.getFirst())
+                action = InventoryAction.PICKUP_OR_SET_DOWN;
+            else if (pulled.getSecond()) // 这里没有对应的 action
+                action = InventoryAction.SHIFT_CLICK;
+            else action = InventoryAction.PICKUP_SINGLE;
+        } else {
+            if (pulled.getFirst() && pulled.getSecond())
+                action = InventoryAction.FILL_ENTIRE_ITEM_MOVE_TO_PLAYER;
+            else if (pulled.getFirst())
+                action = InventoryAction.FILL_ENTIRE_ITEM;
+            else if (pulled.getSecond()) // 这里没有对应的 action
+                action = InventoryAction.FILL_ITEM_MOVE_TO_PLAYER;
+            else action = InventoryAction.FILL_ITEM;
+        }
+        return action;
     }
 }
