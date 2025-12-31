@@ -15,7 +15,6 @@ import java.util.Objects;
 
 @Mixin(EncodingHelper.class)
 public class MixinEncoding {
-
     @Inject(method = "addOrMerge", at = @At("HEAD"), cancellable = true)
     private static void onTransferAdding(List<GenericStack> stacks, GenericStack newStack, CallbackInfo ci) {
         if (!Screen.hasShiftDown()) return;
@@ -25,8 +24,9 @@ public class MixinEncoding {
                 ci.cancel();
             }
             case MERGE_ADJACENCY -> {
-                var existingStack = stacks.isEmpty() ? null : stacks.getLast();
-                if (Objects.equals(existingStack, newStack)) {
+                if (stacks.isEmpty()) return;
+                var existingStack = stacks.getLast();
+                if (Objects.equals(existingStack.what(), newStack.what())) {
                     var newAmount = LongMath.saturatedAdd(existingStack.amount(), newStack.amount());
                     stacks.removeLast();
                     stacks.addLast(new GenericStack(newStack.what(), newAmount));

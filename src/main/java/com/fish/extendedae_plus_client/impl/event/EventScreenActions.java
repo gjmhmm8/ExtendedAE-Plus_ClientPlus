@@ -5,7 +5,6 @@ import appeng.api.stacks.GenericStack;
 import appeng.client.gui.AEBaseScreen;
 import appeng.core.AEConfig;
 import appeng.helpers.InventoryAction;
-import appeng.menu.me.common.GridInventoryEntry;
 import appeng.menu.me.common.MEStorageMenu;
 import com.fish.extendedae_plus_client.ExtendedAEPlusClient;
 import com.fish.extendedae_plus_client.config.EAEPCKeyMapping;
@@ -19,8 +18,6 @@ import net.neoforged.neoforge.client.event.InputEvent;
 import net.neoforged.neoforge.client.event.ScreenEvent;
 import org.jetbrains.annotations.Nullable;
 import org.lwjgl.glfw.GLFW;
-
-import java.util.List;
 
 @EventBusSubscriber(modid = ExtendedAEPlusClient.MODID, value = Dist.CLIENT)
 public final class EventScreenActions {
@@ -62,7 +59,7 @@ public final class EventScreenActions {
         }
 
         if (event.getButton() == GLFW.GLFW_MOUSE_BUTTON_MIDDLE) {
-            menu.handleInteraction(serial, InventoryAction.CRAFT_ITEM);
+            menu.handleInteraction(serial, InventoryAction.AUTO_CRAFT);
             event.setCanceled(true);
         }
     }
@@ -73,14 +70,16 @@ public final class EventScreenActions {
         if (EAEPCKeyMapping.fillToSearchField.get().matches(event.getKeyCode(), event.getScanCode())) {
             // 增强功能, 现在可以检测所有EMIIngredient和screen里的ItemStack了
             // 大概会在一格有多个(?)stack的时候出bug, 但是真的会有那种时候吗?
-            GenericStack stack = HelperRecipeViewer.getHoveredStacks().getFirst();
+            GenericStack stack = null;
+            var stacks = HelperRecipeViewer.getHoveredStacks();
+            if (!stacks.isEmpty()) stack = stacks.getFirst();
             if (stack == null && Minecraft.getInstance().screen instanceof AEBaseScreen<?> screen) {
                 var slot = screen.getSlotUnderMouse();
                 if (slot == null) return;
                 stack = GenericStack.fromItemStack(slot.getItem());
             }
             if (stack == null) return;
-            String name = stack.what().getDisplayName().getString();
+            var name = stack.what().getDisplayName().getString();
 
             // 写入 AE2 终端的搜索框
             if (AEConfig.instance().isUseExternalSearch()) {
@@ -96,12 +95,12 @@ public final class EventScreenActions {
     private static @Nullable Long findHoveredStackSerial(MEStorageMenu menu) {
         if (menu.getClientRepo() == null) return null;
 
-        List<GenericStack> stacks = HelperRecipeViewer.getHoveredStacks();
-        GenericStack stack = stacks.isEmpty() ? null : stacks.getFirst();
+        var stacks = HelperRecipeViewer.getHoveredStacks();
+        var stack = stacks.isEmpty() ? null : stacks.getFirst();
         if (stack == null) return null;
         if (!AEKeyType.items().equals(stack.what().getType())) return null;
 
-        for (GridInventoryEntry entry : menu.getClientRepo().getAllEntries()) {
+        for (var entry : menu.getClientRepo().getAllEntries()) {
             if (!stack.what().equals(entry.getWhat())) continue;
 
             return entry.getSerial();

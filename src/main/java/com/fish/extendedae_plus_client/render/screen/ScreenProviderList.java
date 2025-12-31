@@ -117,6 +117,7 @@ public class ScreenProviderList<TMenu extends PatternEncodingTermMenu,
         this.scrollbar.setHeight(5 * ROW_HEIGHT);
 
         this.queries.addAll(AliasGetter.getRecipeKeywords());
+        AliasGetter.recipeKeywords.clear();
         this.selectedQueryIndex = this.queries.isEmpty() ? -1 : 0;
 
         this.fieldSearch = this.widgets.addTextField("field_search");

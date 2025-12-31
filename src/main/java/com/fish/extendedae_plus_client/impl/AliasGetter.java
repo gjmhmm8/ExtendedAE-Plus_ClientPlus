@@ -10,6 +10,8 @@ import dev.emi.emi.api.recipe.EmiRecipe;
 import dev.emi.emi.api.stack.EmiIngredient;
 import dev.emi.emi.jemi.JemiRecipe;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.contents.PlainTextContents;
+import net.minecraft.network.chat.contents.TranslatableContents;
 import net.minecraft.world.item.crafting.RecipeHolder;
 import net.neoforged.fml.loading.FMLPaths;
 
@@ -17,7 +19,6 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Predicate;
 
 public class AliasGetter {
@@ -141,17 +142,9 @@ public class AliasGetter {
     }
 
     /// 收集到处理配方的关键词（按优先级排序）
-    public static volatile List<KeywordGroup> recipeKeywords = new ArrayList<>() {
-        @Override
-        public void clear() {
-            keyUsed = false;
-            super.clear();
-        }
-    };
-    public static boolean keyUsed = false;
+    public static volatile List<KeywordGroup> recipeKeywords = new ArrayList<>();
 
     public static List<KeywordGroup> getRecipeKeywords() {
-        keyUsed = true;
         recipeKeywords.sort(Comparator
                 .comparing(KeywordGroup::isMapped).reversed()
                 .thenComparing(KeywordGroup::getPriority, Comparator.reverseOrder()));
@@ -159,8 +152,6 @@ public class AliasGetter {
     }
 
     public static void collectRecipeKeyword(String name, int priority, boolean findMapping) {
-        if (keyUsed) recipeKeywords.clear();
-
         var group = KeywordGroup.literal(name);
         group.setPriority(priority);
         if (findMapping) group.findMapping(true);
@@ -201,8 +192,16 @@ public class AliasGetter {
                 var workstationKeys = new ArrayList<String>();
                 workstations.reversed().forEach(ingredient -> ingredient.getEmiStacks().reversed()
                         .forEach(stack -> {
-                            workstationKeys.add(stack.getName().getString());
-                            workstationKeys.add(stack.getName().toString());
+                            var name = stack.getName();
+                            workstationKeys.add(name.getString());
+
+                            String key = null;
+                            if (name.getContents() instanceof PlainTextContents contents)
+                                key = contents.text();
+                            else if (name.getContents() instanceof TranslatableContents contents)
+                                key = contents.getKey();
+                            if (key == null) return;
+                            workstationKeys.add(key);
                         })
                 );
 
@@ -230,9 +229,7 @@ public class AliasGetter {
     }
 
     public static class KeywordGroup {
-        public static final KeywordGroup EMPTY = KeywordGroup.literal("");
-
-        private static HashMap<String, KeywordGroup> literalGroups = new HashMap<>();
+        private static HashMap<String, KeywordGroup> literalGroups;
 
         private final List<String> keywords = new ArrayList<>();
         private Component description;
@@ -251,7 +248,9 @@ public class AliasGetter {
         }
 
         public boolean matches(String nameKey, String i18nKey) {
-            if (this.keywords.stream().map(String::isBlank).allMatch(Predicate.isEqual(true))) return true;
+            if (this.keywords.stream().map(String::isBlank)
+                    .allMatch(Predicate.isEqual(true)))
+                return true;
 
             return nameMatches(this.description.getString(), nameKey)
                     || this.keywords.stream().anyMatch(
@@ -263,18 +262,20 @@ public class AliasGetter {
             if (matchKey == null || matchKey.isBlank()) return false;
             if (searchKey == null || searchKey.isBlank()) return true;
 
+            var jechMatches = false;
             if (ContextModLoaded.jech.isLoaded()) {
                 try {
                     var methodContains = Class.forName("me.towdium.jecharacters.utils.Match")
                             .getMethod("contains", String.class, CharSequence.class);
-                    return (boolean) methodContains.invoke(
+                    jechMatches = (boolean) methodContains.invoke(
                             null, searchKey.toLowerCase(), matchKey.toLowerCase());
                 } catch (Throwable ignore) {
                 }
             }
 
-            return matchKey.toLowerCase().contains(searchKey.toLowerCase()) ||
-                    searchKey.toLowerCase().contains(matchKey.toLowerCase());
+            return jechMatches
+                    || matchKey.toLowerCase().contains(searchKey.toLowerCase())
+                    || searchKey.toLowerCase().contains(matchKey.toLowerCase());
         }
 
         private static boolean i18nKeyMatches(String matchKey, String searchKey) {
@@ -299,15 +300,15 @@ public class AliasGetter {
 
             if (!mappingKeywords) return;
 
-            AtomicBoolean mapped = new AtomicBoolean(false);
+            var mapped = new boolean[]{false};
             var mappedList = this.keywords.stream().map(keyword -> {
                 var mappedKey = AliasGetter.findMapping(keyword);
                 if (mappedKey != null) {
-                    mapped.set(true);
+                    mapped[0] = true;
                     return mappedKey;
                 } else return keyword;
             }).toList();
-            if (mapped.get()) this.mapped = true;
+            if (mapped[0]) this.mapped = true;
 
             this.keywords.clear();
             this.keywords.addAll(mappedList);

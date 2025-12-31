@@ -28,7 +28,8 @@ import java.util.Optional;
 public final class ProxyJeiRuntime {
     private static volatile IJeiRuntime RUNTIME;
 
-    private ProxyJeiRuntime() {}
+    private ProxyJeiRuntime() {
+    }
 
     static void setRuntime(IJeiRuntime runtime) {
         RUNTIME = runtime;
@@ -115,7 +116,8 @@ public final class ProxyJeiRuntime {
                     IngredientBookmark<ItemStack> bookmark = IngredientBookmark.create(typed, rt.getIngredientManager());
                     list.add(bookmark); // add 内部会自动保存到配置
                 });
-            } catch (Throwable ignored) {}
+            } catch (Throwable ignored) {
+            }
         }
     }
 
@@ -190,7 +192,8 @@ public final class ProxyJeiRuntime {
                         }
                     }
                 }
-            } catch (Throwable ignored) {}
+            } catch (Throwable ignored) {
+            }
         }
     }
 }

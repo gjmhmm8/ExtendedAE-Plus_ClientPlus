@@ -14,7 +14,6 @@
     "ae.screen.MixinCraftingCPU",
     "ae.screen.MixinCuttingKnife",
     "ae.screen.MixinEncodingTerminalReproperties",
-    "ae.screen.widgets.MixinFakeSlot",
     "extendedAE.MixinExAccessScreen",
     "extendedAE.accessor.AccessorScreenExPatternTerminal",
     "helperOverriding.HelperAccessScreen",

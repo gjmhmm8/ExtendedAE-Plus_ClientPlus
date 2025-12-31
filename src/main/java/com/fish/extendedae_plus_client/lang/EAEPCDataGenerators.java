@@ -6,7 +6,7 @@ import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.data.event.GatherDataEvent;
 
 @EventBusSubscriber(modid = ExtendedAEPlusClient.MODID)
-public class EAEPCDataGenerator {
+public class EAEPCDataGenerators {
     @SubscribeEvent
     private static void register(GatherDataEvent event) {
         var generator = event.getGenerator();
