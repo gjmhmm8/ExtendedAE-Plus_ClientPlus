@@ -18,6 +18,6 @@ public class EAEPCJeiPlugin implements IModPlugin {
 
     @Override
     public void onRuntimeAvailable(IJeiRuntime jeiRuntime) {
-        ProxyJeiRuntime.setRuntime(jeiRuntime);
+        HelperJeiRuntime.setRuntime(jeiRuntime);
     }
 }

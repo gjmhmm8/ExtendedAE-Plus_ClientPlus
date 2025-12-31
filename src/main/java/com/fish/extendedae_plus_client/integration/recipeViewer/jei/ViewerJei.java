@@ -5,19 +5,21 @@ import appeng.api.stacks.AEItemKey;
 import appeng.api.stacks.AEKey;
 import appeng.api.stacks.GenericStack;
 import com.fish.extendedae_plus_client.integration.ContextModLoaded;
-import com.fish.extendedae_plus_client.integration.recipeViewer.IHelperRecipeViewer;
+import com.fish.extendedae_plus_client.integration.recipeViewer.IRecipeViewer;
 import com.mojang.datafixers.util.Pair;
+import mezz.jei.api.constants.VanillaTypes;
+import mezz.jei.api.ingredients.IIngredientType;
 import mezz.jei.api.ingredients.ITypedIngredient;
+import mezz.jei.api.neoforge.NeoForgeTypes;
 import net.minecraft.client.gui.screens.Screen;
 import org.jetbrains.annotations.Nullable;
 import org.lwjgl.glfw.GLFW;
 import tamaized.ae2jeiintegration.integration.modules.jei.GenericEntryStackHelper;
 
-import java.lang.reflect.Method;
 import java.util.Collections;
 import java.util.List;
 
-public class JeiHelper implements IHelperRecipeViewer {
+public class ViewerJei implements IRecipeViewer {
     @Override
     public List<GenericStack> getHoveredStacks(double mouseX, double mouseY) {
         return getHoveredStacks();
@@ -25,7 +27,7 @@ public class JeiHelper implements IHelperRecipeViewer {
 
     @Override
     public List<GenericStack> getHoveredStacks() {
-        ITypedIngredient<?> hovered = ProxyJeiRuntime.getIngredientUnderMouse().orElse(null);
+        ITypedIngredient<?> hovered = HelperJeiRuntime.getIngredientUnderMouse().orElse(null);
         if (hovered != null)
             return Collections.singletonList(GenericEntryStackHelper.ingredientToStack(hovered));
         else return null;
@@ -33,7 +35,7 @@ public class JeiHelper implements IHelperRecipeViewer {
 
     @Override
     public List<GenericStack> getFavorites() {
-        return ProxyJeiRuntime.getBookmarkList().stream()
+        return HelperJeiRuntime.getBookmarkList().stream()
                 .map(GenericEntryStackHelper::ingredientToStack).toList();
     }
 
@@ -55,30 +57,35 @@ public class JeiHelper implements IHelperRecipeViewer {
 
     @Override
     public boolean isCheatMode() {
-        return ProxyJeiRuntime.isJeiCheatModeEnabled();
+        return HelperJeiRuntime.isJeiCheatModeEnabled();
     }
 
     @Override
     public void addFavorite(GenericStack stack) {
         AEKey key = stack.what();
         if (key instanceof AEItemKey itemKey)
-            ProxyJeiRuntime.addBookmark(itemKey.toStack());
+            HelperJeiRuntime.addFavorite(itemKey.toStack(), VanillaTypes.ITEM_STACK);
         else if (key instanceof AEFluidKey fluidKey)
-            ProxyJeiRuntime.addBookmark(fluidKey.toStack(1000));
+            HelperJeiRuntime.addFavorite(fluidKey.toStack(1000), NeoForgeTypes.FLUID_STACK);
         else if (ContextModLoaded.mekanism.isLoaded() && ContextModLoaded.appliedMekanistics.isLoaded()) {
             try {
-                Class<?> keyClass = key.getClass();
-                if (keyClass.getName().contains("MekanismKey")) {
-                    Method getChemicalStackMethod = keyClass.getMethod("getStack");
-                    Object chemicalStack = getChemicalStackMethod.invoke(key);
-                    ProxyJeiRuntime.addBookmark(chemicalStack);
-                }
+                var clazzTypeKey = Class.forName("me.ramidzkh.mekae2.ae2.MekanismKey");
+                if (!clazzTypeKey.isAssignableFrom(key.getClass())) return;
+
+                var fieldStack = clazzTypeKey.getMethod("getStack").invoke(key);
+
+                @SuppressWarnings("unchecked")
+                var fieldTypeIngredient = (IIngredientType<Object>)
+                        Class.forName("mekanism.client.recipe_viewer.jei.MekanismJEI")
+                        .getField("TYPE_CHEMICAL").get(null);
+
+                HelperJeiRuntime.addFavorite(fieldStack, fieldTypeIngredient);
             } catch (Exception ignored) {}
         }
     }
 
     @Override
     public void setSearch(String text) {
-        ProxyJeiRuntime.setIngredientFilterText(text);
+        HelperJeiRuntime.setIngredientFilterText(text);
     }
 }

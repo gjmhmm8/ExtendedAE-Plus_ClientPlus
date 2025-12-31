@@ -1,6 +1,7 @@
 package com.fish.extendedae_plus_client.impl.event;
 
 import appeng.api.stacks.AEItemKey;
+import appeng.api.stacks.AEKey;
 import appeng.api.stacks.GenericStack;
 import appeng.client.gui.AEBaseScreen;
 import appeng.core.AEConfig;
@@ -84,7 +85,7 @@ public final class EventScreenActions {
         }
     }
 
-    private static @Nullable Pair<GenericStack, Long> findHoveredStack(MEStorageMenu menu) {
+    private static @Nullable Pair<AEKey, Long> findHoveredStack(MEStorageMenu menu) {
         if (menu.getClientRepo() == null) return null;
 
         var stacks = HelperRecipeViewer.getHoveredStacks();
@@ -100,16 +101,16 @@ public final class EventScreenActions {
                 stack = unwrapped;
             }
 
-            return new Pair<>(stack, entry.getSerial());
+            return new Pair<>(stack.what(), entry.getSerial());
         }
         return null;
     }
 
-    private static InventoryAction getAction(Pair<GenericStack, Long> infoStack,
+    private static InventoryAction getAction(Pair<AEKey, Long> infoStack,
                                              Pair<Boolean, Boolean> pulled) {
         InventoryAction action;
 
-        if (infoStack.getFirst().what() instanceof AEItemKey) {
+        if (infoStack.getFirst() instanceof AEItemKey) {
             if (pulled.getFirst() && pulled.getSecond())
                 action = InventoryAction.SHIFT_CLICK;
             else if (pulled.getFirst())

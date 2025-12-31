@@ -6,7 +6,7 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
 
-public class EmptyHelper implements IHelperRecipeViewer {
+public class EmptyHelper implements IRecipeViewer {
     @Override
     public List<GenericStack> getHoveredStacks(double mouseX, double mouseY) {
         return List.of();

@@ -6,7 +6,7 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
 
-public interface IHelperRecipeViewer {
+public interface IRecipeViewer {
     List<GenericStack> getHoveredStacks(double mouseX, double mouseY);
 
     List<GenericStack> getHoveredStacks();
@@ -17,7 +17,7 @@ public interface IHelperRecipeViewer {
     Pair<Boolean, Boolean> matchesKey(int mouseKey);
 
     default boolean isCheatMode() {
-        return false;
+        return true;
     }
 
     void addFavorite(GenericStack stack);

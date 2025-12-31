@@ -2,8 +2,8 @@ package com.fish.extendedae_plus_client.integration.recipeViewer;
 
 import appeng.api.stacks.GenericStack;
 import com.fish.extendedae_plus_client.integration.ContextModLoaded;
-import com.fish.extendedae_plus_client.integration.recipeViewer.emi.EmiHelper;
-import com.fish.extendedae_plus_client.integration.recipeViewer.jei.JeiHelper;
+import com.fish.extendedae_plus_client.integration.recipeViewer.emi.ViewerEmi;
+import com.fish.extendedae_plus_client.integration.recipeViewer.jei.ViewerJei;
 import com.mojang.datafixers.util.Pair;
 import org.jetbrains.annotations.Nullable;
 
@@ -11,25 +11,25 @@ import java.util.List;
 import java.util.Optional;
 
 public class HelperRecipeViewer {
-    private static IHelperRecipeViewer activeViewer;
+    private static IRecipeViewer activeViewer;
 
     public static void init() {
-        if (ContextModLoaded.emi.isLoaded()) activeViewer = new EmiHelper();
-        else if (ContextModLoaded.jei.isLoaded()) activeViewer = new JeiHelper();
+        if (ContextModLoaded.emi.isLoaded()) activeViewer = new ViewerEmi();
+        else if (ContextModLoaded.jei.isLoaded()) activeViewer = new ViewerJei();
         else activeViewer = new EmptyHelper();
     }
 
-    public static Optional<IHelperRecipeViewer> getViewer() {
+    public static Optional<IRecipeViewer> getViewer() {
         if (activeViewer == null) init();
         return Optional.ofNullable(activeViewer);
     }
 
     public static List<GenericStack> getHoveredStacks() {
-        return getViewer().map(IHelperRecipeViewer::getHoveredStacks).orElse(List.of());
+        return getViewer().map(IRecipeViewer::getHoveredStacks).orElse(List.of());
     }
 
     public static List<GenericStack> getFavorites() {
-        return getViewer().map(IHelperRecipeViewer::getFavorites).orElse(List.of());
+        return getViewer().map(IRecipeViewer::getFavorites).orElse(List.of());
     }
 
     /// @return Pair<Boolean: Stack, Boolean: ToInv>
@@ -38,7 +38,7 @@ public class HelperRecipeViewer {
     }
 
     public static boolean isCheatMode() {
-        return getViewer().map(IHelperRecipeViewer::isCheatMode).orElse(false);
+        return getViewer().map(IRecipeViewer::isCheatMode).orElse(false);
     }
 
     public static void addFavorite(GenericStack stack) {
