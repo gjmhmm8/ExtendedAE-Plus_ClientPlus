@@ -1,10 +1,13 @@
 package com.fish.extendedae_plus_client.mixin.core.ae.menu;
 
+import appeng.api.stacks.GenericStack;
 import appeng.menu.AEBaseMenu;
 import appeng.menu.me.crafting.CraftConfirmMenu;
 import appeng.menu.me.crafting.CraftingPlanSummary;
 import com.fish.extendedae_plus_client.impl.ConstantCustomData;
 import com.fish.extendedae_plus_client.impl.cache.CacheCrafting;
+import com.fish.extendedae_plus_client.integration.recipeViewer.HelperRecipeViewer;
+import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.inventory.MenuType;
@@ -25,7 +28,7 @@ public class MixinCraftingConfirm extends AEBaseMenu {
 
     @Inject(method = "startJob", at = @At("HEAD"))
     private void onJobStart(CallbackInfo ci) {
-        if (isServerSide()) return;
+        if (this.isServerSide()) return;
 
         if (this.plan == null) return;
         if (this.plan.getEntries().stream().noneMatch(entry -> {
@@ -35,5 +38,18 @@ public class MixinCraftingConfirm extends AEBaseMenu {
         })) return;
 
         CacheCrafting.markPlan();
+    }
+
+    @Inject(method = "goBack", at = @At("HEAD"))
+    private void onBack(CallbackInfo ci) {
+        if (this.isServerSide()) return;
+        if (!Screen.hasControlDown()) return;
+        if (this.plan == null) return;
+
+        this.plan.getEntries().forEach(entry -> {
+            if (entry.getMissingAmount() <= 0) return;
+            HelperRecipeViewer.addFavorite(
+                    new GenericStack(entry.getWhat(), entry.getMissingAmount()));
+        });
     }
 }
