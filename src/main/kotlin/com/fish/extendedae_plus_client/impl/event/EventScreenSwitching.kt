@@ -1,0 +1,42 @@
+package com.fish.extendedae_plus_client.impl.event
+
+import appeng.client.gui.implementations.QuartzKnifeScreen
+import appeng.client.gui.me.common.MEStorageScreen
+import appeng.core.network.serverbound.SwitchGuisPacket
+import appeng.menu.me.crafting.CraftingStatusMenu
+import com.fish.extendedae_plus_client.ExtendedAEPlusClient
+import com.fish.extendedae_plus_client.impl.cache.CacheCrafting
+import com.fish.extendedae_plus_client.impl.cache.CacheCuttingKnife
+import net.minecraft.client.Minecraft
+import net.minecraft.network.protocol.game.ServerboundContainerClosePacket
+import net.neoforged.bus.api.SubscribeEvent
+import net.neoforged.fml.common.EventBusSubscriber
+import net.neoforged.neoforge.client.event.ScreenEvent
+import net.neoforged.neoforge.network.PacketDistributor
+
+@EventBusSubscriber(modid = ExtendedAEPlusClient.MODID)
+object EventScreenSwitching {
+    @SubscribeEvent
+    private fun onGuiOpening(event: ScreenEvent.Opening) {
+        val newScreen = event.newScreen;
+        if (newScreen is MEStorageScreen<*>)
+            handleMEStorageScreen(event)
+        else if (newScreen is QuartzKnifeScreen)
+            handleCuttingKnifeScreen(newScreen, event)
+    }
+
+    private fun handleMEStorageScreen(event: ScreenEvent.Opening) {
+        if (event.currentScreen != null) return
+        if (CacheCrafting.isEmpty) return
+        CacheCrafting.isOpening = true
+        PacketDistributor.sendToServer(SwitchGuisPacket.openSubMenu(CraftingStatusMenu.TYPE))
+    }
+
+    private fun handleCuttingKnifeScreen(screen: QuartzKnifeScreen, event: ScreenEvent.Opening) {
+        if (!CacheCuttingKnife.isHandlingBlockCopies) return
+        event.setCanceled(true)
+
+        val connection = Minecraft.getInstance().connection ?: return
+        connection.send(ServerboundContainerClosePacket(screen.getMenu().containerId))
+    }
+}

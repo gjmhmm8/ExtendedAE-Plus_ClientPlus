@@ -18,12 +18,13 @@ rei = "16.0.729"
 jei = "19.21.0.247"
 ae2Jei = "5748513"
 geckolib = "7009924"
-ftbTeams = "6930910"
-ftbLibrary = "7029003"
+ftbLibrary = "2101.1.29"
+ftbTeams = "2101.1.9"
 architectury = "5786327"
 jech = "6681787"
 modernUI = "6956436"
 expandedAE = "6910849"
+kotlinForForge = "5.10.0"
 
 [libraries]
 ae2 = { group = "org.appliedenergistics", name = "appliedenergistics2", version.ref = "ae2" }
@@ -46,8 +47,9 @@ rei = { group = "me.shedaniel", name = "RoughlyEnoughItems-neoforge", version.re
 jei = { group = "mezz.jei", name = "jei-1.21.1-neoforge", version.ref = "jei" }
 ae2Jei = { group = "curse.maven", name = "ae2-jei-integration-1074338", version.ref = "ae2Jei" }
 geckolib = { group = "curse.maven", name = "geckolib-388172", version.ref = "geckolib" }
-ftbTeams = { group = "curse.maven", name = "ftb-teams-forge-404468", version.ref = "ftbTeams" }
-ftbLibrary = { group = "curse.maven", name = "ftb-library-forge-404465", version.ref = "ftbLibrary" }
+ftbLibrary = { group = "dev.ftb.mods", name = "ftb-library-neoforge", version.ref = "ftbLibrary" }
+ftbTeams = { group = "dev.ftb.mods", name = "ftb-teams-neoforge", version.ref = "ftbTeams" }
 architectury = { group = "curse.maven", name = "architectury-api-419699", version.ref = "architectury" }
 modernUI = { group = "curse.maven", name = "modern-ui-352491", version.ref = "modernUI" }
 expandedAE = { group = "curse.maven", name = "expanded-ae-1213351", version.ref = "expandedAE" }
+kotlinForForge = { group = "thedarkcolour", name = "kotlinforforge-neoforge", version.ref = "kotlinForForge" }

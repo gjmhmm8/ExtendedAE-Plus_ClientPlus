@@ -33,6 +33,7 @@ public class UtilKeyBuilder {
     public static final String jadeConfig = "config.jade.plugin_%s%s";
 
     // 高雅人士正在盗窃工具类.jpg
+    // 不要问我为什么这个工具类不改成咳特灵写的
 
     public static BuilderGeneric<?> of(String keyTemplate) {
         var builder = new BuilderGeneric<>();
