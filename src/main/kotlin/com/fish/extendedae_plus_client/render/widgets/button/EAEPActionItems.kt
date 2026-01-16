@@ -14,7 +14,6 @@ enum class EAEPActionItems(
 ) {
     BACKING_OUT(fromAEIcon(Icon.INVALID), Component.empty(), Component.empty(), ""),
 
-    ALIAS_RELOAD(EAEPIcon.SAVE_CENTER, "recipe_alias", "reload"),
     ALIAS_ADD(EAEPIcon.SAVE_UP, "recipe_alias", "add"),
     ALIAS_REMOVE(EAEPIcon.SAVE_DOWN, "recipe_alias", "remove");
 

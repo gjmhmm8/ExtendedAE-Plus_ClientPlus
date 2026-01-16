@@ -13,7 +13,6 @@ import appeng.menu.SlotSemantics
 import appeng.menu.me.common.MEStorageMenu
 import com.fish.extendedae_plus_client.impl.ConstantCustomData
 import com.fish.extendedae_plus_client.util.UtilKeyBuilder
-import net.minecraft.client.gui.components.Button
 import net.minecraft.core.component.DataComponents
 import net.minecraft.nbt.CompoundTag
 import net.minecraft.network.chat.Component
@@ -39,7 +38,7 @@ class ScreenStacksReproperties<TMenu : MEStorageMenu>(
             TabButton(
                 Icon.BACK,
                 getMenu().host.mainMenuIcon.hoverName
-            ) { _: Button -> this.returnToParent() }
+            ) { _ -> this.returnToParent() }
         )
 
         if (primaryOutput) {
@@ -57,20 +56,13 @@ class ScreenStacksReproperties<TMenu : MEStorageMenu>(
                 )
             )
             this.buttonAutoCompletion.setTooltipOn(
-                listOf<Component>(
-                    UtilKeyBuilder.of(UtilKeyBuilder.screen)
-                        .addStr("auto_completion")
-                        .addStr("on")
-                        .build(),
-                    UtilKeyBuilder.of(UtilKeyBuilder.screen)
-                        .addStr("auto_completion")
-                        .addStr("description")
-                        .build(),
-                    UtilKeyBuilder.of(UtilKeyBuilder.screen)
-                        .addStr("auto_completion")
-                        .addStr("only_completion")
-                        .build()
-                )
+                UtilKeyBuilder.of(UtilKeyBuilder.screen)
+                    .addStr("auto_completion")
+                    .newArrayList()
+                    .buildInto("on")
+                    .buildInto("description")
+                    .buildInto("only_completion")
+                    .get() as ArrayList<Component>
             )
             this.widgets.add("button_auto_completion", this.buttonAutoCompletion)
 

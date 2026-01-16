@@ -1,6 +1,5 @@
 package com.fish.extendedae_plus_client.config
 
-import net.minecraft.client.gui.screens.Screen
 import net.neoforged.fml.ModContainer
 import net.neoforged.fml.config.ModConfig
 import net.neoforged.neoforge.client.gui.ConfigurationScreen
@@ -28,8 +27,7 @@ object EAEPCConfig {
         modContainer.registerConfig(ModConfig.Type.CLIENT, SPEC, "extendedae_plus/client.toml")
         modContainer.registerExtensionPoint(
             IConfigScreenFactory::class.java,
-            IConfigScreenFactory { modContainer: ModContainer, parent: Screen ->
-                ConfigurationScreen(modContainer, parent) }
+            IConfigScreenFactory(::ConfigurationScreen)
         )
     }
 }

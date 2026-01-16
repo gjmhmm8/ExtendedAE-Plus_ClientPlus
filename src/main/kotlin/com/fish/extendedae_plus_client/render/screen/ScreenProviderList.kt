@@ -78,11 +78,6 @@ class ScreenProviderList<TMenu : PatternEncodingTermMenu, TScreen : PatternEncod
 
         this.addToLeftToolbar(
             EAEPActionButton(
-                EAEPActionItems.ALIAS_RELOAD
-            ) { _ -> this.reloadMappings() }
-        )
-        this.addToLeftToolbar(
-            EAEPActionButton(
                 EAEPActionItems.ALIAS_ADD
             ) { _ -> this.addMapping() }
         )
@@ -405,19 +400,6 @@ class ScreenProviderList<TMenu : PatternEncodingTermMenu, TScreen : PatternEncod
                 false
             )
         }
-    }
-
-    private fun reloadMappings() {
-        AliasGetter.tryLoadAliases()
-        val player = Minecraft.getInstance().player
-        player?.displayClientMessage(
-            UtilKeyBuilder.of(UtilKeyBuilder.message)
-                .addStr("provider_list")
-                .addStr("remap_success")
-                .build(),
-            false
-        )
-        this.queries.clear()
     }
 
     override fun keyPressed(keyCode: Int, scanCode: Int, modifiers: Int): Boolean {

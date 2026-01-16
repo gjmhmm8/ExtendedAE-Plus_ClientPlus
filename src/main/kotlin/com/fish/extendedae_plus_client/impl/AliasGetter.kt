@@ -1,10 +1,12 @@
 package com.fish.extendedae_plus_client.impl
 
+import com.electronwill.nightconfig.core.Config
+import com.electronwill.nightconfig.core.file.FileConfig
+import com.electronwill.nightconfig.core.file.FileConfig.builder
+import com.electronwill.nightconfig.toml.TomlFormat.instance
 import com.fish.extendedae_plus_client.integration.ContextModLoaded
 import com.fish.extendedae_plus_client.util.UtilKeyBuilder
-import com.google.gson.Gson
 import com.google.gson.GsonBuilder
-import com.google.gson.JsonElement
 import com.google.gson.JsonObject
 import dev.emi.emi.api.EmiApi
 import dev.emi.emi.api.recipe.EmiRecipe
@@ -16,50 +18,37 @@ import net.minecraft.network.chat.contents.PlainTextContents
 import net.minecraft.network.chat.contents.TranslatableContents
 import net.minecraft.world.item.crafting.RecipeHolder
 import net.neoforged.fml.loading.FMLPaths
-import java.io.IOException
 import java.nio.file.Files
-import java.util.concurrent.ConcurrentHashMap
 import java.util.function.Predicate
 import kotlin.concurrent.Volatile
+import kotlin.io.path.deleteIfExists
+import kotlin.io.path.exists
 
 object AliasGetter {
-    private val GSON: Gson = GsonBuilder().setPrettyPrinting().disableHtmlEscaping().create()
-    private const val CONFIG_RELATIVE = "extendedae_plus/stored_alias.json"
-    private val ALIASES: MutableMap<String, String> = ConcurrentHashMap<String, String>()
+    private val pathConfig = FMLPaths.CONFIGDIR.get().resolve("extendedae_plus/stored_alias.toml")
+    private var pathConfigOld = pathConfig.parent.resolve("stored_alias.json")
+    private val config: FileConfig = builder(pathConfig, instance()).autosave().autoreload().build()
 
     init {
-        tryLoadAliases()
+        this.config.load()
+
+        if (this.pathConfigOld.exists())
+            this.tryConvertConfig()
     }
 
-    @Synchronized
-    fun tryLoadAliases() {
-        try {
-            val pathFile = FMLPaths.CONFIGDIR.get().resolve(CONFIG_RELATIVE)
-            if (!Files.exists(pathFile)) Files.createFile(pathFile)
+    fun closeConfig() {
+        this.config.close()
+    }
 
-            val json = Files.readString(pathFile)
-            val obj = GSON.fromJson(json, JsonObject::class.java)
-            if (obj == null) {
-                ALIASES.clear()
-                return
-            }
+    fun tryConvertConfig() {
+        val gson = GsonBuilder().setPrettyPrinting().disableHtmlEscaping().create()
+        val obj = gson.fromJson(Files.readString(this.pathConfigOld), JsonObject::class.java) ?: return
 
-            val resolvedAlias = HashMap<String, String>()
-
-            obj.entrySet().forEach { entry: MutableMap.MutableEntry<String, JsonElement?> ->
-                val typeKey = entry.key
-                val aliasValve = entry.value
-                if (aliasValve == null || !aliasValve.isJsonPrimitive) return@forEach
-
-                val aliasName = aliasValve.asString
-                if (aliasName == null || aliasName.isBlank()) return@forEach
-                resolvedAlias[typeKey.lowercase()] = aliasName
-            }
-
-            ALIASES.clear()
-            ALIASES.putAll(resolvedAlias)
-        } catch (_: Throwable) {
-        }
+        obj.entrySet().stream()
+            .filter { entry -> entry.value?.isJsonPrimitive ?: false && !entry.value?.asString.isNullOrBlank() }
+            .forEach { entry -> this.config.set(entry.key, entry.value.asString) }
+        this.config.save()
+        this.pathConfigOld.deleteIfExists()
     }
 
     /**
@@ -73,29 +62,11 @@ object AliasGetter {
     fun addOrUpdateAlias(typeKey: String?, alias: String?): Boolean {
         if (typeKey.isNullOrBlank() || alias.isNullOrBlank()) return false
 
-        try {
-            val pathFile = FMLPaths.CONFIGDIR.get().resolve(CONFIG_RELATIVE)
-            if (!Files.exists(pathFile)) Files.createFile(pathFile)
-
-            var obj: JsonObject?
-            if (Files.exists(pathFile)) {
-                val json = Files.readString(pathFile)
-                obj = GSON.fromJson(json, JsonObject::class.java)
-                if (obj == null) obj = JsonObject()
-            } else return false
-
-            val key = typeKey.trim()
-
-            obj.addProperty(key, alias)
-            Files.writeString(pathFile, GSON.toJson(obj))
-
-            ALIASES[key.lowercase()] = alias
-            return true
-        } catch (_: IOException) {
-            return false
-        }
+        this.config.set<String>(listOf(typeKey.lowercase()), alias)
+        return true
     }
 
+    /** @return 删除别名的数量 */
     @Synchronized
     fun removeAliases(alias: String?): Int {
         if (alias.isNullOrBlank()) return 0
@@ -103,46 +74,18 @@ object AliasGetter {
         val target = alias.trim()
         if (target.isBlank()) return 0
 
-        try {
-            val pathFile = FMLPaths.CONFIGDIR.get().resolve(CONFIG_RELATIVE)
-            if (!Files.exists(pathFile)) {
-                Files.createFile(pathFile)
-                return 0
-            }
-
-            val json = Files.readString(pathFile)
-            val obj = GSON.fromJson(json, JsonObject::class.java) ?: return 0
-
-            val toRemove = ArrayList<String>()
-            obj.entrySet().forEach { entry: MutableMap.MutableEntry<String, JsonElement?> ->
-                val aliasValue = entry.value
-                if (aliasValue == null || !aliasValue.isJsonPrimitive) return@forEach
-
-                val aliasName = aliasValue.asString
-                if (target.equals(
-                        aliasName,
-                        ignoreCase = true
-                    )
-                ) toRemove.add(entry.key.lowercase())
-            }
-            if (toRemove.isEmpty()) return 0
-
-            toRemove.forEach(ALIASES::remove)
-            toRemove.forEach(obj::remove)
-            Files.writeString(pathFile, GSON.toJson(obj))
-            return toRemove.size
-        } catch (_: IOException) {
-            return 0
-        }
+        val toRemove = this.config.entrySet().stream()
+            .filter { entry -> entry.getValue<Any>().toString().equals(target, true) }
+            .map(Config.Entry::getKey)
+            .toList()
+        toRemove.forEach { value -> this.config.remove(value) }
+        return toRemove.size
     }
 
     fun findMapping(key: String?): String? {
         if (key.isNullOrBlank()) return null
 
-        if (ALIASES.containsKey(key.lowercase()))
-            return ALIASES[key.lowercase()]
-
-        return null
+        return this.config.get(listOf(key.lowercase()))
     }
 
     /** 收集到处理配方的关键词（按优先级排序） */
@@ -264,11 +207,12 @@ object AliasGetter {
         fun matches(nameKey: String, i18nKey: String): Boolean {
             if (this.keywords.stream()
                     .map(String::isBlank)
-                    .allMatch(Predicate.isEqual(true))) return true
+                    .allMatch(Predicate.isEqual(true))
+            ) return true
 
             return nameMatches(this.description.string, nameKey)
                     || this.keywords.stream().anyMatch { key ->
-                        nameMatches(key, nameKey)
+                nameMatches(key, nameKey)
                         || i18nKeyMatches(key, i18nKey)
             }
         }

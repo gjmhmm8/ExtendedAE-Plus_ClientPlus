@@ -48,9 +48,7 @@ object EAEPCKeyMapping {
     }
 
     private fun register(
-        name: String,
-        keyConflictContext: IKeyConflictContext,
-        keyCode: Int
+        name: String, keyConflictContext: IKeyConflictContext, keyCode: Int
     ): Lazy<KeyMapping> {
         return register(name, keyConflictContext, InputConstants.Type.KEYSYM, keyCode, CATEGORY)
     }

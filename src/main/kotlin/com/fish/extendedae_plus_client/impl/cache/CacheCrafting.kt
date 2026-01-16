@@ -15,6 +15,10 @@ object CacheCrafting {
         }
 
     @JvmStatic
+    val isEmpty: Boolean
+        get() = markedPlan == 0
+
+    @JvmStatic
     fun markPlan() {
         markedPlan++
     }
@@ -24,6 +28,8 @@ object CacheCrafting {
         markedPlan = max(markedPlan - 1, 0)
     }
 
-    val isEmpty: Boolean
-        get() = markedPlan == 0
+    fun clear() {
+        this.isOpening = false
+        this.markedPlan = 0
+    }
 }

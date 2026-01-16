@@ -26,8 +26,6 @@ val loader_version_range: String by project
 version = mod_version
 group = mod_group_id
 
-// 注意：在 Kotlin DSL 中应用 Groovy 脚本可能无法共享变量上下文。
-// 建议将 dependencies.gradle 的内容直接移入此文件，或将其也转换为 .kts。
 apply(from = "$rootDir/dependencies.gradle")
 
 base {
