@@ -60,7 +60,6 @@ public class MixinAccessTerminal<TMenu extends PatternAccessTermMenu> extends AE
                                     int inventorySize,
                                     Int2ObjectMap<ItemStack> slots,
                                     CallbackInfo ci) {
-        if(!((PatternContainer)this.byId.get(inventoryId).getInventory().toContainer()).isVisibleInTerminal())return;
         CacheProvider.putProvider(this.byId.get(inventoryId),inventorySize-slots.size()>0);
         for(var i:slots.values()){
             var patternDetail=PatternDetailsHelper.decodePattern(i, this.getPlayer().level());
@@ -72,7 +71,6 @@ public class MixinAccessTerminal<TMenu extends PatternAccessTermMenu> extends AE
 
     @Inject(method = "postIncrementalUpdate", at = @At("HEAD"))
     private void onProviderListSyncInc(long inventoryId, Int2ObjectMap<ItemStack> slots, CallbackInfo ci) {
-        if(!((PatternContainer)this.byId.get(inventoryId).getInventory().toContainer()).isVisibleInTerminal())return;
         for(var i:slots.int2ObjectEntrySet()){
             if(i.getValue()==ItemStack.EMPTY){
                 CacheProvider.putProvider(this.byId.get(inventoryId),true);
