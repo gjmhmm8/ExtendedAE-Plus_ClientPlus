@@ -1,5 +1,6 @@
 package com.fish.extendedae_plus_client.mixin.core.extendedAE;
 
+import appeng.api.crafting.PatternDetailsHelper;
 import appeng.api.implementations.blockentities.PatternContainerGroup;
 import appeng.client.gui.AEBaseScreen;
 import appeng.client.gui.me.patternaccess.PatternContainerRecord;
@@ -10,7 +11,6 @@ import com.fish.extendedae_plus_client.mixin.impl.helper.HelperPatternMoving;
 import com.glodblock.github.extendedae.client.gui.GuiExPatternTerminal;
 import com.glodblock.github.extendedae.container.ContainerExPatternTerminal;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
-import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.item.ItemStack;
@@ -43,20 +43,13 @@ public class MixinExAccessScreen<TMenu extends ContainerExPatternTerminal> exten
     @Inject(method = "<init>", at = @At("TAIL"))
     private void onInit(CallbackInfo ci) {
         CacheProvider.clearProvider();
+        CacheProvider.clearPatternAlready();
         this.eaep$helperMoving = new HelperPatternMoving(this);
     }
 
     @Inject(method = "onClose", at = @At("HEAD"))
     private void onClose(CallbackInfo ci) {
         this.eaep$helperMoving.clearReservation();
-        if (!Screen.hasShiftDown())
-            CacheProvider.clearPattern();
-    }
-
-    @Inject(method = "updateBeforeRender", at = @At("HEAD"))
-    private void onRenderUpdating(CallbackInfo ci) {
-        if (this.eaep$helperMoving.isEmpty()) return;
-        this.searchField.setFocused(false);
     }
 
     @Inject(method = "postFullUpdate", at = @At("TAIL"))
@@ -66,7 +59,39 @@ public class MixinExAccessScreen<TMenu extends ContainerExPatternTerminal> exten
                                     int inventorySize,
                                     Int2ObjectMap<ItemStack> slots,
                                     CallbackInfo ci) {
-        CacheProvider.putProvider(this.byId.get(inventoryId));
+        CacheProvider.putProvider(this.byId.get(inventoryId),inventorySize-slots.size()>0);
+        CacheProvider.addSlots(group,inventorySize);
+        for(var i:slots.values()){
+            var patternDetail=PatternDetailsHelper.decodePattern(i, this.getPlayer().level());
+            if (patternDetail != null) {
+                CacheProvider.markPatternAlready(patternDetail,group);
+            }
+        }
+    }
+
+    @Inject(method = "postIncrementalUpdate", at = @At("HEAD"))
+    private void onProviderListSyncInc(long inventoryId, Int2ObjectMap<ItemStack> slots, CallbackInfo ci) {
+        var group=this.byId.get(inventoryId).getGroup();
+        for(var i:slots.int2ObjectEntrySet()){
+            if(i.getValue()==ItemStack.EMPTY){
+                CacheProvider.putProvider(this.byId.get(inventoryId),true);
+                var pattern=this.byId.get(inventoryId).getInventory().getStackInSlot(i.getIntKey());
+                var patternDetail=PatternDetailsHelper.decodePattern(pattern, this.getPlayer().level());
+                if (patternDetail != null) {
+                    CacheProvider.unmarkPatternAlready(patternDetail, group);
+                }
+            }
+            var patternDetail=PatternDetailsHelper.decodePattern(i.getValue(), this.getPlayer().level());
+            if (patternDetail != null) {
+                CacheProvider.markPatternAlready(patternDetail, group);
+            }
+        }
+    }
+
+    @Inject(method = "updateBeforeRender", at = @At("HEAD"))
+    private void onRenderUpdating(CallbackInfo ci) {
+        if (this.eaep$helperMoving.isEmpty()) return;
+        this.searchField.setFocused(false);
     }
 
     @Inject(method = "containerTick", at = @At("TAIL"))

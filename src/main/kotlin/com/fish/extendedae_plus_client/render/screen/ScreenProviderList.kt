@@ -7,7 +7,6 @@ import appeng.api.stacks.AEItemKey
 import appeng.client.gui.AESubScreen
 import appeng.client.gui.Icon
 import appeng.client.gui.me.items.PatternEncodingTermScreen
-import appeng.client.gui.me.patternaccess.PatternContainerRecord
 import appeng.client.gui.style.PaletteColor
 import appeng.client.gui.widgets.AETextField
 import appeng.client.gui.widgets.Scrollbar
@@ -19,6 +18,7 @@ import appeng.core.localization.GuiText
 import appeng.menu.me.items.PatternEncodingTermMenu
 import com.fish.extendedae_plus_client.impl.AliasGetter
 import com.fish.extendedae_plus_client.impl.AliasGetter.KeywordGroup
+import com.fish.extendedae_plus_client.impl.cache.CacheProvider
 import com.fish.extendedae_plus_client.render.widgets.button.EAEPActionButton
 import com.fish.extendedae_plus_client.render.widgets.button.EAEPActionItems
 import com.fish.extendedae_plus_client.util.UtilKeyBuilder
@@ -30,6 +30,8 @@ import net.minecraft.client.gui.ComponentPath
 import net.minecraft.client.gui.GuiGraphics
 import net.minecraft.client.gui.components.Tooltip
 import net.minecraft.client.renderer.Rect2i
+import net.minecraft.client.resources.sounds.SimpleSoundInstance
+import net.minecraft.client.sounds.SoundManager
 import net.minecraft.locale.Language
 import net.minecraft.network.chat.Component
 import net.minecraft.sounds.SoundEvents
@@ -39,7 +41,7 @@ import kotlin.math.max
 
 class ScreenProviderList<TMenu : PatternEncodingTermMenu, TScreen : PatternEncodingTermScreen<TMenu>>(
     previous: TScreen,
-    private val providersRaw: MutableCollection<PatternContainerRecord>,
+    private val providersRaw: Set<PatternContainerGroup>,
     private val applier: Consumer<PatternContainerGroup?>
 ) : AESubScreen<TMenu, TScreen>(previous, PATH_STYLE) {
     private val fieldSearch: AETextField
@@ -158,7 +160,7 @@ class ScreenProviderList<TMenu : PatternEncodingTermMenu, TScreen : PatternEncod
             }
 
             val name = provider.name.copy()
-                .append(" [${provider.availableSlots}]")
+                .append(" [≈${provider.availableSlots}]")
 
             val text = Language.getInstance().getVisualOrder(
                 this.font.substrByWidth(name, TEXT_MAX_WIDTH - 10)
@@ -214,11 +216,10 @@ class ScreenProviderList<TMenu : PatternEncodingTermMenu, TScreen : PatternEncod
 
     private fun updateInfo() {
         if (this.providers.isEmpty()) {
-            this.providersRaw.forEach { record: PatternContainerRecord ->
+            this.providersRaw.forEach { group ->
                 this.providers.computeIfAbsent(
-                    record.group.name().string
-                ) { _ -> InfoProvider(record) }
-                    .add(record)
+                    group.name().string
+                ) { _ -> InfoProvider(group) }
             }
         }
 
@@ -437,11 +438,16 @@ class ScreenProviderList<TMenu : PatternEncodingTermMenu, TScreen : PatternEncod
             val indexProvider = this.getHoveredLineIndex(xCoord, yCoord)
             if (indexProvider >= 0) {
                 this.focusedRow = indexProvider + this.scrollbar.currentScroll
+                this.playDownSound(Minecraft.getInstance().soundManager)
                 return true
             }
         }
 
         return super.mouseClicked(xCoord, yCoord, button)
+    }
+
+    private fun playDownSound(handler: SoundManager) {
+        handler.play(SimpleSoundInstance.forUI(SoundEvents.UI_BUTTON_CLICK, 1.0f))
     }
 
     override fun mouseReleased(mouseX: Double, mouseY: Double, button: Int): Boolean {
@@ -491,37 +497,14 @@ class ScreenProviderList<TMenu : PatternEncodingTermMenu, TScreen : PatternEncod
         this.returnToParent()
     }
 
-    private class InfoProvider(record: PatternContainerRecord) {
-        val name: Component = record.group.name()
-        val icon: AEItemKey? = record.group.icon()
-        var group=record.group
-        var availableSlots: Int = 0
-
-        private var availableSlotSingle = 0
-
-        init {
-            this.addSlotLimit(record)
-        }
+    private class InfoProvider(val group: PatternContainerGroup) {
+        val name: Component = group.name()
+        val icon: AEItemKey? = group.icon()
+        var availableSlots: Int = CacheProvider.getAvailableSlots(group)
 
         fun i18nKey(): String {
             if (this.icon == null) return ""
             return this.icon.id.toLanguageKey()
-        }
-
-        fun add(record: PatternContainerRecord) {
-            if (this.addSlotLimit(record)) this.group = record.group
-        }
-
-        fun addSlotLimit(record: PatternContainerRecord): Boolean {
-            var usedSlots = 0
-            for (stack in record.inventory) {
-                if (!stack.isEmpty) usedSlots++
-            }
-            val slots = record.inventory.size() - usedSlots
-            val flagBigger = slots > this.availableSlotSingle
-            this.availableSlots += slots
-            this.availableSlotSingle = slots
-            return flagBigger
         }
     }
 

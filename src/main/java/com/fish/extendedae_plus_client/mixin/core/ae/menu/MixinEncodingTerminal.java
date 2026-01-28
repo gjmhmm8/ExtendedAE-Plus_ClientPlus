@@ -1,6 +1,7 @@
 package com.fish.extendedae_plus_client.mixin.core.ae.menu;
 
 import appeng.api.crafting.PatternDetailsHelper;
+import appeng.api.implementations.blockentities.PatternContainerGroup;
 import appeng.api.storage.ITerminalHost;
 import appeng.client.gui.me.items.PatternEncodingTermScreen;
 import appeng.core.definitions.AEBlocks;
@@ -8,18 +9,24 @@ import appeng.menu.me.common.MEStorageMenu;
 import appeng.menu.me.items.PatternEncodingTermMenu;
 import appeng.menu.slot.RestrictedInputSlot;
 import appeng.parts.encoding.EncodingMode;
+import com.fish.extendedae_plus_client.config.enums.AutoUploadMode;
+import com.fish.extendedae_plus_client.config.EAEPCConfig;
 import com.fish.extendedae_plus_client.impl.cache.CacheProvider;
 import com.fish.extendedae_plus_client.mixin.impl.bridge.BridgePlanToEncode;
+import com.fish.extendedae_plus_client.mixin.impl.helper.WTLibHelper;
 import com.fish.extendedae_plus_client.render.screen.ScreenProviderList;
 import com.fish.extendedae_plus_client.util.UtilKeyBuilder;
 import com.glodblock.github.extendedae.common.EAESingletons;
+import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.network.protocol.game.ServerboundContainerClickPacket;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.inventory.ClickType;
 import net.minecraft.world.inventory.MenuType;
 import net.minecraft.world.inventory.Slot;
-import org.lwjgl.glfw.GLFW;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.ItemUtils;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -31,31 +38,31 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 @Mixin(PatternEncodingTermMenu.class)
 public abstract class MixinEncodingTerminal extends MEStorageMenu implements BridgePlanToEncode {
     @Shadow
+    public EncodingMode mode;
+    @Shadow
     @Final
     private RestrictedInputSlot encodedPatternSlot;
-    @Shadow
-    public EncodingMode mode;
-
-    @Shadow
-    public abstract void encode();
-
     @Unique
     private boolean eaep$flagPatternSelection;
     @Unique
     private boolean eaep$encodingDelayed;
-
     public MixinEncodingTerminal(MenuType<?> menuType, int id, Inventory ip, ITerminalHost host) {
         super(menuType, id, ip, host);
     }
 
-    @Inject(method = "encode", at = @At("HEAD"))
+    @Shadow
+    public abstract void encode();
+
+    @Shadow
+    protected abstract ItemStack encodePattern();
+
+    @Inject(method = "encode", at = @At("HEAD"),cancellable = true)
     private void onEncode(CallbackInfo ci) {
         if (this.isServerSide()) return;
 
-        if (Screen.hasShiftDown()) return;
-        this.eaep$flagPatternSelection = true;
+        if (!extendedAE_Plus_ClientPlus$shouldTigger()) return;
 
-        if (CacheProvider.getProviderList().isEmpty()) {
+        if (CacheProvider.isEmpty()) {
             this.getPlayer().displayClientMessage(
                     UtilKeyBuilder.of(UtilKeyBuilder.message)
                             .addStr("provider_list")
@@ -63,78 +70,103 @@ public abstract class MixinEncodingTerminal extends MEStorageMenu implements Bri
                             .build(),
                     false
             );
+            ci.cancel();
             return;
         }
 
-        if (!this.encodedPatternSlot.hasItem()) return;
+        var pattern=this.encodePattern();
+        if(pattern==null)return;
 
-        this.eaep$makePattern();
+        if (this.encodedPatternSlot.hasItem()){
+            var is=this.encodedPatternSlot.getItem();
+            var patternDetailsSlot=PatternDetailsHelper.decodePattern(is, this.getPlayer().level());
+            if(patternDetailsSlot!=null)CacheProvider.unmarkPattern(patternDetailsSlot);
+        }
+
+        var patternDetails = PatternDetailsHelper.decodePattern(pattern, this.getPlayer().level());
+        if(patternDetails==null || CacheProvider.hasPattern(patternDetails)){
+            this.getPlayer().displayClientMessage(
+                    UtilKeyBuilder.of(UtilKeyBuilder.message)
+                            .addStr("pattern")
+                            .addStr("already")
+                            .build(),
+                    false
+            );
+            ci.cancel();
+            return;
+        }
+        this.eaep$flagPatternSelection = true;
+        if (!this.encodedPatternSlot.hasItem()) return;
+        if(ItemStack.isSameItemSameComponents(encodedPatternSlot.getItem(),pattern)){
+            this.eaep$makePattern();
+            ci.cancel();
+        }
     }
 
     @Inject(method = "onSlotChange", at = @At("TAIL"))
     private void onSlotChange(Slot slot, CallbackInfo ci) {
         if (this.isServerSide()) return;
 
-        if (!this.encodedPatternSlot.equals(slot)) {
-            if (!this.eaep$encodingDelayed) return;
-            this.eaep$encodingDelayed = false;
-
-            this.encode();
-            return;
-        }
+        if(!this.encodedPatternSlot.equals(slot))return;
 
         if (!this.eaep$flagPatternSelection) return;
-        this.eaep$flagPatternSelection = false;
 
         if (!this.encodedPatternSlot.hasItem()) return;
-
         this.eaep$makePattern();
-
-        var player = Minecraft.getInstance().player;
-        var gameMode = Minecraft.getInstance().gameMode;
-        if (player == null || gameMode == null) return;
-        gameMode.handleInventoryMouseClick(
-                this.containerId,
-                this.encodedPatternSlot.index,
-                GLFW.GLFW_MOUSE_BUTTON_LEFT,
-                ClickType.QUICK_MOVE,
-                player
-        );
     }
 
     @Unique
     private void eaep$makePattern() {
-        if (CacheProvider.getProviderList().isEmpty()) return;
+        this.eaep$flagPatternSelection = false;
+        if (CacheProvider.isEmpty()) return;
 
         var existingPattern = this.encodedPatternSlot.getItem();
         if (!PatternDetailsHelper.isEncodedPattern(existingPattern)) return;
 
         if (!EncodingMode.PROCESSING.equals(this.mode)) {
-            for (var record : CacheProvider.getProviderList().values()) {
-                var icon = record.getGroup().icon();
+            for (var group : CacheProvider.getGroups()) {//TODO pattern slots
+                var icon = group.icon();
                 if (icon == null
                         || !(icon.is(AEBlocks.MOLECULAR_ASSEMBLER)
                         || icon.is(EAESingletons.EX_ASSEMBLER)
                         || icon.is(EAESingletons.ASSEMBLER_MATRIX_PATTERN)))
                     continue;
-
-                CacheProvider.markPattern(
-                        PatternDetailsHelper.decodePattern(existingPattern, this.getPlayer().level()),
-                        record.getGroup());
+                eaep$makePatternAuto(existingPattern, group);
             }
         } else {
             if (!(Minecraft.getInstance().screen instanceof PatternEncodingTermScreen<?> screen)) return;
             var screenProviderList = new ScreenProviderList<>(screen,
-                    CacheProvider.getProviderList().values(),
-                    hashGroup -> {
-                        if (hashGroup == null) return;
-                        CacheProvider.markPattern(
-                                PatternDetailsHelper.decodePattern(existingPattern, this.getPlayer().level()),
-                                hashGroup);
+                    CacheProvider.getGroups(),
+                    group -> {
+                        if (group == null) return;
+                        eaep$makePatternAuto(existingPattern, group);
                     }
             );
             screen.switchToScreen(screenProviderList);
         }
+    }
+
+    @Unique
+    private void eaep$makePatternAuto(ItemStack pattern, PatternContainerGroup group) {
+        var patternDetails = PatternDetailsHelper.decodePattern(pattern, this.getPlayer().level());
+        if (patternDetails == null) return;
+        CacheProvider.markPattern(patternDetails, group);
+        Minecraft.getInstance().player.connection.send(new ServerboundContainerClickPacket(
+                containerId, 1, this.encodedPatternSlot.index,
+                0, ClickType.QUICK_MOVE, this.getCarried(), new Int2ObjectOpenHashMap<>()
+        ));
+        if(EAEPCConfig.autoUploadMode.get() == AutoUploadMode.AUTO_OPEN)
+            WTLibHelper.openTerminalCyc(WTLibHelper.PATTERN_ACCESS);
+    }
+
+    @Unique
+    private static boolean extendedAE_Plus_ClientPlus$shouldTigger(){
+        return switch (EAEPCConfig.tiggerMode.get()){
+            case ON_SHIFT -> Screen.hasShiftDown();
+            case ON_NOT_SHIFT -> !Screen.hasShiftDown();
+            case ON_CTRL -> Screen.hasControlDown();
+            case ON_NOT_CTRL -> !Screen.hasControlDown();
+        };
     }
 
     @Override

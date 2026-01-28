@@ -1,5 +1,8 @@
 package com.fish.extendedae_plus_client.config
 
+import com.fish.extendedae_plus_client.config.enums.AutoUploadMode
+import com.fish.extendedae_plus_client.config.enums.ModeEncodingTransfer
+import com.fish.extendedae_plus_client.config.enums.TiggerMode
 import net.neoforged.fml.ModContainer
 import net.neoforged.fml.config.ModConfig
 import net.neoforged.neoforge.client.gui.ConfigurationScreen
@@ -13,17 +16,23 @@ object EAEPCConfig {
     @JvmField
     val autoPlateRepeat: ModConfigSpec.IntValue
     @JvmField
+    val autoTransferDelay: ModConfigSpec.IntValue
+    @JvmField
     val modeEncodingTransfer: ModConfigSpec.EnumValue<ModeEncodingTransfer>
 
     @JvmField
     val autoUploadMode: ModConfigSpec.EnumValue<AutoUploadMode>
+    @JvmField
+    val tiggerMode: ModConfigSpec.EnumValue<TiggerMode>
 
     init {
         val builder = ModConfigSpec.Builder()
 
         autoPlateRepeat = builder.defineInRange("autoPlateRepeat", 1, 1, 64)
+        autoTransferDelay = builder.defineInRange("autoTransferDelay", 10, 1, 40)
         modeEncodingTransfer = builder.defineEnum("modeEncodingTransfer", ModeEncodingTransfer.MERGE_ADJACENCY)
         autoUploadMode = builder.defineEnum("autoUploadMode", AutoUploadMode.AUTO_OPEN)
+        tiggerMode = builder.defineEnum("tiggerMode", TiggerMode.ON_NOT_SHIFT)
         SPEC = builder.build()
     }
 

@@ -1,4 +1,4 @@
-package com.fish.extendedae_plus_client.config
+package com.fish.extendedae_plus_client.config.enums
 
 enum class ModeEncodingTransfer {
     NONE,

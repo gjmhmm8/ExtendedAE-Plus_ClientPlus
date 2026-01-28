@@ -1,10 +1,13 @@
 package com.fish.extendedae_plus_client.mixin.impl.helper;
 
+import appeng.api.crafting.IPatternDetails;
 import appeng.api.crafting.PatternDetailsHelper;
 import appeng.client.gui.AEBaseScreen;
 import appeng.client.gui.me.patternaccess.PatternContainerRecord;
 import appeng.core.network.serverbound.InventoryActionPacket;
 import appeng.helpers.InventoryAction;
+import com.fish.extendedae_plus_client.config.EAEPCConfig;
+import com.fish.extendedae_plus_client.config.enums.AutoUploadMode;
 import com.fish.extendedae_plus_client.impl.cache.CacheProvider;
 import com.mojang.datafixers.util.Pair;
 import net.minecraft.client.Minecraft;
@@ -19,9 +22,9 @@ public final class HelperPatternMoving {
     private final AEBaseScreen<?> host;
 
     private final Map<Long, Set<Integer>> cacheUsedSlots;
-    private final List<Pair<Integer, PatternContainerRecord>> patterns;
-
-    private int delay;
+    private final List<Pair<Integer, Pair<IPatternDetails,PatternContainerRecord>>> patterns;
+    private final Set<IPatternDetails> cache=new HashSet<>();
+    private int delay = EAEPCConfig.autoTransferDelay.getAsInt();
     private boolean moving;
     private boolean completed;
 
@@ -29,7 +32,6 @@ public final class HelperPatternMoving {
         this.host = host;
         this.patterns = new ArrayList<>();
         this.cacheUsedSlots = new HashMap<>();
-        this.delay = 10;
     }
 
     public void clearReservation() {
@@ -40,8 +42,12 @@ public final class HelperPatternMoving {
         return this.patterns.isEmpty();
     }
 
-    public void movePattern() {
+    public void movePattern() {//TODO 闭环控制
         if (completed) return;
+        if(EAEPCConfig.autoUploadMode.get()== AutoUploadMode.NONE){
+            completed=true;
+            return;
+        }
         if (this.delay > 0) {
             this.delay--;
             return;
@@ -54,14 +60,20 @@ public final class HelperPatternMoving {
         var info = this.patterns.getFirst();
 
         var stateLastHolding = this.moving;
-        this.movePattern(info.getFirst(), info.getSecond());
+        this.movePattern(info.getFirst(), info.getSecond().getSecond());
 
         if ((stateLastHolding && !this.moving)
-                || !(stateLastHolding || this.moving))
+                || !(stateLastHolding || this.moving)){
+            CacheProvider.markPatternAlready(info.getSecond().getFirst(),info.getSecond().getSecond().getGroup());
             this.patterns.removeFirst();
+        }
 
-        if (this.patterns.isEmpty())
+
+        if (this.patterns.isEmpty()){
             this.completed = true;
+            CacheProvider.clearPattern();
+            WTLibHelper.goBackCyc();
+        }
     }
 
     private void filterPattern() {
@@ -72,21 +84,22 @@ public final class HelperPatternMoving {
         for (int index = 0; index < inv.size(); index++) {
             ItemStack stack = inv.get(index);
             if (stack.isEmpty()) continue;
+            var details=PatternDetailsHelper.decodePattern(stack, Minecraft.getInstance().level);
+            if(details==null || CacheProvider.hasPatternAlready(details) || cache.contains(details))continue;
+            cache.add(details);
 
-            var hashGroup = CacheProvider.findProvider(PatternDetailsHelper.decodePattern(
-                    stack, Minecraft.getInstance().level));
-
+            var hashGroup = CacheProvider.findProvider(details);
             if (hashGroup == null) continue;
 
-            var providerInfo = CacheProvider.getProviderList().get(hashGroup);
+            var providerInfo = CacheProvider.getAvailableProvider(hashGroup);
             if (providerInfo == null) continue;
 
-            this.patterns.add(new Pair<>(index, providerInfo));
+            this.patterns.add(new Pair<>(index, new Pair<>(details,providerInfo)));
         }
     }
 
     private void movePattern(Integer slot, PatternContainerRecord providerInfo) {
-        if (CacheProvider.getProviderList().isEmpty()) {
+        if (CacheProvider.isEmpty()) {
             this.moving = false;
             return;
         }

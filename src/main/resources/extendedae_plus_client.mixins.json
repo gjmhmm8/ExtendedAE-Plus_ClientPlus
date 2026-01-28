@@ -36,5 +36,8 @@
   },
   "overwrites": {
     "requireAnnotations": true
-  }
+  },
+  "mixins": [
+    "ae.accessor.AccessorAEBaseMenu"
+  ]
 }
