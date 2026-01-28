@@ -52,12 +52,11 @@ jobs:
         run: |
           ls build/libs
           MOD_NAME_CLEAN=$(echo "${{ steps.properties.outputs.mod_name }}" | tr -d '[]')
-          echo "mod_name_clean=$MOD_NAME_CLEAN" >> $GITHUB_OUTPUT
-          MESSAGE=$(ls build/libs/* | awk -F "${{ steps.properties.outputs.mod_name_clean }}-|.jar" '{print $2}')
+          MESSAGE=$(ls build/libs/* | awk -F "${{ MOD_NAME_CLEAN }}-|.jar" '{print $2}')
           echo "version=$MESSAGE" >> $GITHUB_OUTPUT
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
           name: "${{ steps.properties.outputs.mod_name }} ${{ steps.version.outputs.version }}"
-          path: build/libs/${{ steps.properties.outputs.mod_name_clean }}-${{ steps.version.outputs.version }}.jar
+          path: build/libs/ExtendedAE Plus Client-${{ steps.version.outputs.version }}.jar
