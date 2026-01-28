@@ -52,7 +52,7 @@ public abstract class MixinEncodingTerminal extends MEStorageMenu implements Bri
     private void onEncode(CallbackInfo ci) {
         if (this.isServerSide()) return;
 
-        if (!Screen.hasControlDown()) return;
+        if (Screen.hasShiftDown()) return;
         this.eaep$flagPatternSelection = true;
 
         if (CacheProvider.getProviderList().isEmpty()) {
@@ -68,7 +68,7 @@ public abstract class MixinEncodingTerminal extends MEStorageMenu implements Bri
 
         if (!this.encodedPatternSlot.hasItem()) return;
 
-        this.eaep$markPattern();
+        this.eaep$makePattern();
     }
 
     @Inject(method = "onSlotChange", at = @At("TAIL"))
@@ -88,7 +88,7 @@ public abstract class MixinEncodingTerminal extends MEStorageMenu implements Bri
 
         if (!this.encodedPatternSlot.hasItem()) return;
 
-        this.eaep$markPattern();
+        this.eaep$makePattern();
 
         var player = Minecraft.getInstance().player;
         var gameMode = Minecraft.getInstance().gameMode;
@@ -103,7 +103,7 @@ public abstract class MixinEncodingTerminal extends MEStorageMenu implements Bri
     }
 
     @Unique
-    private void eaep$markPattern() {
+    private void eaep$makePattern() {
         if (CacheProvider.getProviderList().isEmpty()) return;
 
         var existingPattern = this.encodedPatternSlot.getItem();
@@ -120,7 +120,7 @@ public abstract class MixinEncodingTerminal extends MEStorageMenu implements Bri
 
                 CacheProvider.markPattern(
                         PatternDetailsHelper.decodePattern(existingPattern, this.getPlayer().level()),
-                        record.getGroup().hashCode());
+                        record.getGroup());
             }
         } else {
             if (!(Minecraft.getInstance().screen instanceof PatternEncodingTermScreen<?> screen)) return;
@@ -130,7 +130,7 @@ public abstract class MixinEncodingTerminal extends MEStorageMenu implements Bri
                         if (hashGroup == null) return;
                         CacheProvider.markPattern(
                                 PatternDetailsHelper.decodePattern(existingPattern, this.getPlayer().level()),
-                                Math.toIntExact(hashGroup));
+                                hashGroup);
                     }
             );
             screen.switchToScreen(screenProviderList);

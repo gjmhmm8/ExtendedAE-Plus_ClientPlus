@@ -1,17 +1,19 @@
 package com.fish.extendedae_plus_client.impl.cache
 
 import appeng.api.crafting.IPatternDetails
+import appeng.api.implementations.blockentities.PatternContainerGroup
 import appeng.client.gui.me.patternaccess.PatternContainerRecord
 
 object CacheProvider {
     @JvmStatic
-    val providerList: MutableMap<Int, PatternContainerRecord> = HashMap()
-    @JvmStatic
-    private val selectedProvider: MutableMap<IPatternDetails, Int> = HashMap()
+    var providerList: MutableMap<PatternContainerGroup,PatternContainerRecord> = HashMap()
 
     @JvmStatic
-    fun markPattern(pattern: IPatternDetails, hashGroup: Int) {
-        selectedProvider[pattern] = hashGroup
+    private val selectedProvider: MutableMap<IPatternDetails, PatternContainerGroup> = HashMap()
+
+    @JvmStatic
+    fun markPattern(pattern: IPatternDetails, container: PatternContainerGroup) {
+        selectedProvider[pattern] = container
     }
 
     @JvmStatic
@@ -20,13 +22,13 @@ object CacheProvider {
     }
 
     @JvmStatic
-    fun findProvider(pattern: IPatternDetails?): Int? {
+    fun findProvider(pattern: IPatternDetails?): PatternContainerGroup? {
         return selectedProvider[pattern]
     }
 
-    @JvmStatic
-    fun putProvider(record: PatternContainerRecord) {
-        providerList[record.group.hashCode()] = record
+     @JvmStatic
+    fun putProvider(container: PatternContainerRecord) {
+        providerList[container.group]=container
     }
 
     @JvmStatic

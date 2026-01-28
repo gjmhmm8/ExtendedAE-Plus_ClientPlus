@@ -15,12 +15,15 @@ object EAEPCConfig {
     @JvmField
     val modeEncodingTransfer: ModConfigSpec.EnumValue<ModeEncodingTransfer>
 
+    @JvmField
+    val autoUploadMode: ModConfigSpec.EnumValue<AutoUploadMode>
+
     init {
         val builder = ModConfigSpec.Builder()
 
         autoPlateRepeat = builder.defineInRange("autoPlateRepeat", 1, 1, 64)
         modeEncodingTransfer = builder.defineEnum("modeEncodingTransfer", ModeEncodingTransfer.MERGE_ADJACENCY)
-
+        autoUploadMode = builder.defineEnum("autoUploadMode", AutoUploadMode.AUTO_OPEN)
         SPEC = builder.build()
     }
 

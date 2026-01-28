@@ -2,6 +2,7 @@ package com.fish.extendedae_plus_client.render.screen
 
 import appeng.api.config.Settings
 import appeng.api.config.TerminalStyle
+import appeng.api.implementations.blockentities.PatternContainerGroup
 import appeng.api.stacks.AEItemKey
 import appeng.client.gui.AESubScreen
 import appeng.client.gui.Icon
@@ -39,7 +40,7 @@ import kotlin.math.max
 class ScreenProviderList<TMenu : PatternEncodingTermMenu, TScreen : PatternEncodingTermScreen<TMenu>>(
     previous: TScreen,
     private val providersRaw: MutableCollection<PatternContainerRecord>,
-    private val applier: Consumer<Long?>
+    private val applier: Consumer<PatternContainerGroup?>
 ) : AESubScreen<TMenu, TScreen>(previous, PATH_STYLE) {
     private val fieldSearch: AETextField
     private val fieldAlias: AETextField
@@ -232,7 +233,7 @@ class ScreenProviderList<TMenu : PatternEncodingTermMenu, TScreen : PatternEncod
     private fun select(indexProvider: Int) {
         val provider = this.providersFiltered[indexProvider]
 
-        this.applier.accept(provider.hashGroup)
+        this.applier.accept(provider.group)
         this.returnToParent()
     }
 
@@ -493,13 +494,12 @@ class ScreenProviderList<TMenu : PatternEncodingTermMenu, TScreen : PatternEncod
     private class InfoProvider(record: PatternContainerRecord) {
         val name: Component = record.group.name()
         val icon: AEItemKey? = record.group.icon()
-        var hashGroup: Long
+        var group=record.group
         var availableSlots: Int = 0
 
         private var availableSlotSingle = 0
 
         init {
-            this.hashGroup = record.group.hashCode().toLong()
             this.addSlotLimit(record)
         }
 
@@ -509,7 +509,7 @@ class ScreenProviderList<TMenu : PatternEncodingTermMenu, TScreen : PatternEncod
         }
 
         fun add(record: PatternContainerRecord) {
-            if (this.addSlotLimit(record)) this.hashGroup = record.group.hashCode().toLong()
+            if (this.addSlotLimit(record)) this.group = record.group
         }
 
         fun addSlotLimit(record: PatternContainerRecord): Boolean {
