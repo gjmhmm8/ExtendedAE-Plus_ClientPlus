@@ -59,5 +59,5 @@ jobs:
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: "${{ steps.properties.outputs.mod_name_clean }} ${{ steps.version.outputs.version }}"
-          path: build/libs/${{ steps.properties.outputs.mod_name }}-${{ steps.version.outputs.version }}.jar
+          name: "${{ steps.properties.outputs.mod_name }} ${{ steps.version.outputs.version }}"
+          path: build/libs/${{ steps.properties.outputs.mod_name_clean }}-${{ steps.version.outputs.version }}.jar

@@ -25,7 +25,7 @@ val loader_version_range: String by project
 
 val buildNumber: String? = System.getenv("GITHUB_RUN_NUMBER")
 if (buildNumber != null) {
-    project.setProperty("mod_name", mod_name.replace(Regex.fromLiteral("\\[\\]"), ""))
+    project.setProperty("mod_name", mod_name.replace("[", "").replace("]", ""))
     if (System.getenv("BUILD_TYPE") == "snapshot")
         project.setProperty("mod_version", "$mod_version+build.$buildNumber")
 }
