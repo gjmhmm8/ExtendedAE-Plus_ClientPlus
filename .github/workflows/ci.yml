@@ -50,7 +50,7 @@ jobs:
       - name: Get Version
         id: version
         run: |
-          MESSAGE=$(ls build/libs/* | awk -F '${{ replace(replace(steps.properties.outputs.mod_name, '[', ''), ']', '') }}-|.jar' '{print $2}')
+          MESSAGE=$(ls build/libs/* | awk -F '${{ steps.properties.outputs.mod_name.replace('[', '').replace(']', '') }}-|.jar' '{print $2}')
           echo "version=$MESSAGE" >> $GITHUB_OUTPUT
 
       - name: Upload Artifact
