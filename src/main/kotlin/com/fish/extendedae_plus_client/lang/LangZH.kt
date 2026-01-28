@@ -72,7 +72,7 @@ class LangZH(output: PackOutput) : LanguageProvider(output, ExtendedAEPlusClient
             .buildInto("别名操作")
 
         UtilKeyBuilder.ofDataGen(UtilKeyBuilder.keyCategory)
-            .buildInto("ExtendedAE Plus [Client]")
+            .buildInto("ExtendedAE Plus [ClientPlus]")
         UtilKeyBuilder.ofDataGen(UtilKeyBuilder.key)
             .addStr("fill_to_search_field")
             .buildInto("搜索鼠标指向的物品")

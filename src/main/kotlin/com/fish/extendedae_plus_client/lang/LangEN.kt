@@ -72,7 +72,7 @@ class LangEN(output: PackOutput) : LanguageProvider(output, ExtendedAEPlusClient
             .buildInto("Alias Actions")
 
         UtilKeyBuilder.ofDataGen(UtilKeyBuilder.keyCategory)
-            .buildInto("ExtendedAE Plus [Client]")
+            .buildInto("ExtendedAE Plus [ClientPlus]")
         UtilKeyBuilder.ofDataGen(UtilKeyBuilder.key)
             .addStr("fill_to_search_field")
             .buildInto("Search hovered item")
