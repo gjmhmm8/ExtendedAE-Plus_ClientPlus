@@ -60,11 +60,13 @@ public final class HelperPatternMoving {
         var info = this.patterns.getFirst();
 
         var stateLastHolding = this.moving;
-        this.movePattern(info.getFirst(), info.getSecond().getSecond());
+        var slot=this.movePattern(info.getFirst(), info.getSecond().getSecond());
 
         if ((stateLastHolding && !this.moving)
                 || !(stateLastHolding || this.moving)){
-            CacheProvider.markPatternAlready(info.getSecond().getFirst(),info.getSecond().getSecond().getGroup());
+            CacheProvider.markPatternAlready(info.getSecond().getFirst());
+            if(slot==-1)throw new RuntimeException("idx is -1");
+            CacheProvider.setSlots(info.getSecond().getSecond(),slot,true);
             this.patterns.removeFirst();
         }
 
@@ -98,10 +100,10 @@ public final class HelperPatternMoving {
         }
     }
 
-    private void movePattern(Integer slot, PatternContainerRecord providerInfo) {
+    private int movePattern(Integer slot, PatternContainerRecord providerInfo) {
         if (CacheProvider.isEmpty()) {
             this.moving = false;
-            return;
+            return -1;
         }
 
         if (!this.host.getMenu().getCarried().isEmpty() && this.moving) {
@@ -120,7 +122,7 @@ public final class HelperPatternMoving {
 
             if (targetSlot == -1) {
                 this.moving = false;
-                return;
+                return -1;
             }
 
             PacketDistributor.sendToServer(new InventoryActionPacket(
@@ -131,6 +133,7 @@ public final class HelperPatternMoving {
 
             used.add(targetSlot);
             this.moving = false;
+            return targetSlot;
         } else {
             var menu = this.host.getMenu();
             var player = Minecraft.getInstance().player;
@@ -139,11 +142,11 @@ public final class HelperPatternMoving {
             if (player == null || gameMode == null
                     || slot < 0 || slot > menu.slots.size()) {
                 this.moving = false;
-                return;
+                return -1;
             }
             if (!menu.getSlot(slot).hasItem()) {
                 this.moving = false;
-                return;
+                return -1;
             }
 
             gameMode.handleInventoryMouseClick(
@@ -155,5 +158,6 @@ public final class HelperPatternMoving {
             );
             this.moving = true;
         }
+        return -1;
     }
 }

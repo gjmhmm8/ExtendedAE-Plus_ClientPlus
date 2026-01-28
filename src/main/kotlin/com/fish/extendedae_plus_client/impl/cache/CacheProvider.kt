@@ -3,6 +3,8 @@ package com.fish.extendedae_plus_client.impl.cache
 import appeng.api.crafting.IPatternDetails
 import appeng.api.implementations.blockentities.PatternContainerGroup
 import appeng.client.gui.me.patternaccess.PatternContainerRecord
+import net.minecraft.world.item.ItemStack
+import java.util.*
 
 object CacheProvider {
     @JvmStatic
@@ -12,13 +14,10 @@ object CacheProvider {
     private val selectedProvider: MutableMap<IPatternDetails, PatternContainerGroup> = HashMap()
 
     @JvmStatic
-    private val providerSlots: MutableMap<PatternContainerGroup, Int> = HashMap()
-
-    @JvmStatic
     private val selectedPattern: MutableSet<IPatternDetails> = HashSet()
 
     @JvmStatic
-    private val selectedPatternGroup: MutableMap<PatternContainerGroup, MutableSet<IPatternDetails>> = HashMap()
+    private val providerSlots: MutableMap<PatternContainerGroup, MutableMap<PatternContainerRecord, BitSet>> = HashMap()
 
     @JvmStatic
     fun markPattern(pattern: IPatternDetails, container: PatternContainerGroup) {
@@ -31,15 +30,13 @@ object CacheProvider {
     }
 
     @JvmStatic
-    fun markPatternAlready(pattern: IPatternDetails,container: PatternContainerGroup) {
+    fun markPatternAlready(pattern: IPatternDetails) {
         selectedPattern.add(pattern);
-        selectedPatternGroup.getOrPut(container, { HashSet() }).add(pattern);
     }
 
     @JvmStatic
-    fun unmarkPatternAlready(pattern: IPatternDetails,container: PatternContainerGroup) {
+    fun unmarkPatternAlready(pattern: IPatternDetails) {
         selectedPattern.remove(pattern)
-        selectedPatternGroup.getOrDefault(container,HashSet()).remove(pattern);
     }
 
     @JvmStatic
@@ -50,7 +47,7 @@ object CacheProvider {
     @JvmStatic
     fun clearPatternAlready() {
         selectedPattern.clear()
-        selectedPatternGroup.clear()
+        providerSlots.clear()
     }
 
     @JvmStatic
@@ -70,35 +67,45 @@ object CacheProvider {
 
     @JvmStatic
     fun putProvider(container: PatternContainerRecord, mabeHasSlot: Boolean) {
-        if(mabeHasSlot){
+        if (mabeHasSlot) {
             providerList.getOrPut(container.group) { mutableListOf() }.add(container)
-        } else{
+            val bs=providerSlots.getOrPut(container.group, { HashMap() })
+            .getOrPut(container, { BitSet(container.inventory.size()) })
+            container.inventory.forEachIndexed { index, stack ->bs[index]=stack!= ItemStack.EMPTY }
+        } else {
             providerList.getOrPut(container.group) { mutableListOf() }
         }
     }
 
     @JvmStatic
-    fun addSlots(group:PatternContainerGroup, num:Int){
-        providerSlots[group]=providerSlots.getOrDefault(group,0)+num
+    fun setSlots(record: PatternContainerRecord, idx: Int, used: Boolean) {
+        providerSlots.getOrPut(record.group, { HashMap() })
+            .getOrPut(record, { BitSet(record.inventory.size()) })[idx] = used;
     }
 
     @JvmStatic
-    fun getAvailableSlots(group:PatternContainerGroup): Int{
-        val patternNum=selectedPatternGroup[group]?.size?:0
-        return providerSlots.getOrDefault(group,0)-patternNum;
+    fun getAvailableSlots(group: PatternContainerGroup): Int {
+        var all = 0
+        var used = 0
+        providerSlots.getOrPut(group, { HashMap() })
+            .forEach { record, set ->
+                all += record.inventory.size()
+                used += set.cardinality()
+            }
+        return all-used;
     }
 
     @JvmStatic
-    fun getAvailableProvider(group:PatternContainerGroup ): PatternContainerRecord? {
+    fun getAvailableProvider(group: PatternContainerGroup): PatternContainerRecord? {
         // 任意返回一个“未满”的：inventory 里存在空槽就认为可用
         val list = providerList[group] ?: return null
-            for (rec in list) {
-                val inv = rec.inventory
-                val size = inv.size()
-                for (i in 0 until size) {
-                    if (inv.getStackInSlot(i).isEmpty) return rec
-                }
+        for (rec in list) {
+            val inv = rec.inventory
+            val size = inv.size()
+            for (i in 0 until size) {
+                if (inv.getStackInSlot(i).isEmpty) return rec
             }
+        }
 
         return null;
     }
@@ -109,7 +116,7 @@ object CacheProvider {
     }
 
     @JvmStatic
-    fun isEmpty(): Boolean{
+    fun isEmpty(): Boolean {
         return providerList.isEmpty();
     }
 

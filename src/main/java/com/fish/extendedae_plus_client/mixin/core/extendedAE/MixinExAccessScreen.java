@@ -6,7 +6,9 @@ import appeng.client.gui.AEBaseScreen;
 import appeng.client.gui.me.patternaccess.PatternContainerRecord;
 import appeng.client.gui.style.ScreenStyle;
 import appeng.client.gui.widgets.AETextField;
+import appeng.menu.implementations.PatternAccessTermMenu;
 import com.fish.extendedae_plus_client.impl.cache.CacheProvider;
+import com.fish.extendedae_plus_client.mixin.impl.helper.HelperPAMenu;
 import com.fish.extendedae_plus_client.mixin.impl.helper.HelperPatternMoving;
 import com.glodblock.github.extendedae.client.gui.GuiExPatternTerminal;
 import com.glodblock.github.extendedae.container.ContainerExPatternTerminal;
@@ -60,30 +62,28 @@ public class MixinExAccessScreen<TMenu extends ContainerExPatternTerminal> exten
                                     Int2ObjectMap<ItemStack> slots,
                                     CallbackInfo ci) {
         CacheProvider.putProvider(this.byId.get(inventoryId),inventorySize-slots.size()>0);
-        CacheProvider.addSlots(group,inventorySize);
         for(var i:slots.values()){
             var patternDetail=PatternDetailsHelper.decodePattern(i, this.getPlayer().level());
             if (patternDetail != null) {
-                CacheProvider.markPatternAlready(patternDetail,group);
+                CacheProvider.markPatternAlready(patternDetail);
             }
         }
     }
 
     @Inject(method = "postIncrementalUpdate", at = @At("HEAD"))
     private void onProviderListSyncInc(long inventoryId, Int2ObjectMap<ItemStack> slots, CallbackInfo ci) {
-        var group=this.byId.get(inventoryId).getGroup();
         for(var i:slots.int2ObjectEntrySet()){
             if(i.getValue()==ItemStack.EMPTY){
                 CacheProvider.putProvider(this.byId.get(inventoryId),true);
                 var pattern=this.byId.get(inventoryId).getInventory().getStackInSlot(i.getIntKey());
                 var patternDetail=PatternDetailsHelper.decodePattern(pattern, this.getPlayer().level());
                 if (patternDetail != null) {
-                    CacheProvider.unmarkPatternAlready(patternDetail, group);
+                    CacheProvider.unmarkPatternAlready(patternDetail);
                 }
             }
             var patternDetail=PatternDetailsHelper.decodePattern(i.getValue(), this.getPlayer().level());
             if (patternDetail != null) {
-                CacheProvider.markPatternAlready(patternDetail, group);
+                CacheProvider.markPatternAlready(patternDetail);
             }
         }
     }

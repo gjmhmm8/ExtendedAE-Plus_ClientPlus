@@ -38,6 +38,7 @@
     "requireAnnotations": true
   },
   "mixins": [
-    "ae.accessor.AccessorAEBaseMenu"
+    "ae.accessor.AccessorAEBaseMenu",
+    "ae.accessor.AccessorPAMenu"
   ]
 }
