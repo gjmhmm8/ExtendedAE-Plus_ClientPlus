@@ -1,10 +1,15 @@
 package com.fish.extendedae_plus_client.mixin.core.recipeViewer;
 
+import appeng.api.crafting.IPatternDetails;
+import appeng.api.crafting.PatternDetailsHelper;
 import appeng.api.stacks.AEKey;
 import appeng.integration.modules.itemlists.EncodingHelper;
 import appeng.menu.me.common.GridInventoryEntry;
 import appeng.menu.me.common.MEStorageMenu;
+import com.fish.extendedae_plus_client.impl.ConstantCustomData;
 import com.fish.extendedae_plus_client.integration.recipeViewer.HelperRecipeViewer;
+import net.minecraft.client.Minecraft;
+import net.minecraft.core.component.DataComponents;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -12,18 +17,33 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 import java.util.Comparator;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.atomic.AtomicInteger;
 
 @Mixin(EncodingHelper.class)
 public class MixinEncodingHelper {
     // 客户端：注入优先使用JEI书签的物品，流体
     @Inject(method = "getIngredientPriorities", at = @At("TAIL"), cancellable = true, remap = false)
-    private static void epp$addJeiIngredientPriorities(MEStorageMenu menu, Comparator<GridInventoryEntry> comparator, CallbackInfoReturnable<Map<AEKey, Integer>> cir){
-        Map<AEKey, Integer> result = cir.getReturnValue();
-        AtomicInteger index = new AtomicInteger(Integer.MAX_VALUE);
+    private static void epp$addJeiIngredientPriorities(MEStorageMenu menu, Comparator<GridInventoryEntry> comparator, CallbackInfoReturnable<Map<AEKey, Integer>> cir) {
+        var result = cir.getReturnValue();
+        var index = new AtomicInteger(Integer.MAX_VALUE);
+
+        var player = Minecraft.getInstance().player;
+        if (player != null) player.getInventory().items.stream()
+                .filter(PatternDetailsHelper::isEncodedPattern)
+                .map(pattern -> PatternDetailsHelper.decodePattern(pattern, Minecraft.getInstance().level))
+                .filter(Objects::nonNull)
+                .map(IPatternDetails::getPrimaryOutput)
+                .filter(stack -> {
+                    var data = stack.what().get(DataComponents.CUSTOM_DATA);
+                    if (data == null) return true;
+                    return !data.contains(ConstantCustomData.autoCompletable.get());
+                }).forEach(stack -> result.put(stack.what(), index.getAndDecrement()));
+
         HelperRecipeViewer.getFavorites().forEach(favorite -> {
             if (favorite != null) result.put(favorite.what(), index.getAndDecrement());
         });
+
         cir.setReturnValue(result);
     }
 }

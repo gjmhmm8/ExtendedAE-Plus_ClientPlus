@@ -33,14 +33,12 @@ object AliasGetter {
         this.config.load()
 
         if (this.pathConfigOld.exists())
-            this.tryConvertConfig()
+            this.convertConfig()
     }
 
-    fun closeConfig() {
-        this.config.close()
-    }
+    fun closeConfig() = this.config.close()
 
-    fun tryConvertConfig() {
+    fun convertConfig() {
         val gson = GsonBuilder().setPrettyPrinting().disableHtmlEscaping().create()
         val obj = gson.fromJson(Files.readString(this.pathConfigOld), JsonObject::class.java) ?: return
 
