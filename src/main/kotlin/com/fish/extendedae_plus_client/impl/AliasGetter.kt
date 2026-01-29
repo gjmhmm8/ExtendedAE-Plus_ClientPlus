@@ -114,6 +114,7 @@ object AliasGetter {
     @JvmStatic
     fun tryCollectKeywords(recipe: Any?) {
         recipeKeywords.clear()
+        keywords.clear()
         if (recipe == null) return
         val keys = HashMap<Int, String>()
 
