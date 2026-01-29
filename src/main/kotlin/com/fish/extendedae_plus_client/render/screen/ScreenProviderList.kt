@@ -103,7 +103,6 @@ class ScreenProviderList<TMenu : PatternEncodingTermMenu, TScreen : PatternEncod
         this.fieldSearch.setResponder { value: String ->
             if(!fieldAlias.value.isBlank())return@setResponder
             if (value == this.selectedQuery().string) return@setResponder
-            if (this.queries.containsValue(Component.literal(value))) return@setResponder
             this.selectedQueryIndex = -1
             this.customQuery = value
             this.queryRefresh = true
@@ -114,7 +113,6 @@ class ScreenProviderList<TMenu : PatternEncodingTermMenu, TScreen : PatternEncod
         this.fieldAlias.setMaxLength(64)
         this.fieldAlias.setResponder { value: String ->
             if (value == this.selectedQuery().string) return@setResponder
-            if (this.queries.containsValue(Component.literal(value))) return@setResponder
             this.selectedQueryIndex = -1
             this.customQuery = value
             this.queryRefresh = true
