@@ -141,7 +141,7 @@ class ScreenProviderList<TMenu : PatternEncodingTermMenu, TScreen : PatternEncod
         super.containerTick()
         if (this.queryRefresh) {
             this.queryRefresh = false
-            this.fieldAlias.value = this.selectedQuery().string
+            if(this.selectedQueryIndex!=-1) this.fieldAlias.value = this.selectedQuery().string
             this.rebuildKeywordsTooltip()
             this.updateInfo()
             this.scrollbar.setRange(0, this.providersFiltered.size - this.visibleRows, 2)
