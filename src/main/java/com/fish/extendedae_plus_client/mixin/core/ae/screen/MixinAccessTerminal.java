@@ -74,11 +74,14 @@ public class MixinAccessTerminal<TMenu extends PatternAccessTermMenu> extends AE
         for(var i:slots.int2ObjectEntrySet()){
             if(i.getValue()==ItemStack.EMPTY){
                 CacheProvider.putProvider(this.byId.get(inventoryId),true);
+                CacheProvider.setSlots(this.byId.get(inventoryId),i.getIntKey(),false);
                 var pattern=this.byId.get(inventoryId).getInventory().getStackInSlot(i.getIntKey());
                 var patternDetail=PatternDetailsHelper.decodePattern(pattern, this.getPlayer().level());
                 if (patternDetail != null) {
                     CacheProvider.unmarkPatternAlready(patternDetail);
                 }
+            }else{
+                CacheProvider.setSlots(this.byId.get(inventoryId),i.getIntKey(),true);
             }
             var patternDetail=PatternDetailsHelper.decodePattern(i.getValue(), this.getPlayer().level());
             if (patternDetail != null) {

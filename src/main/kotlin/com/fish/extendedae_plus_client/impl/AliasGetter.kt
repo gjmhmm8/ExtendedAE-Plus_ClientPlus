@@ -13,6 +13,8 @@ import dev.emi.emi.api.recipe.EmiRecipe
 import dev.emi.emi.api.stack.EmiIngredient
 import dev.emi.emi.api.stack.EmiStack
 import dev.emi.emi.jemi.JemiRecipe
+import it.unimi.dsi.fastutil.ints.Int2ObjectRBTreeMap
+import it.unimi.dsi.fastutil.ints.Int2ObjectSortedMap
 import net.minecraft.network.chat.Component
 import net.minecraft.network.chat.contents.PlainTextContents
 import net.minecraft.network.chat.contents.TranslatableContents
@@ -88,26 +90,20 @@ object AliasGetter {
 
     /** 收集到处理配方的关键词（按优先级排序） */
     @Volatile
-    private var recipeKeywords: MutableList<KeywordGroup> = ArrayList<KeywordGroup>()
+    private var recipeKeywords: Int2ObjectSortedMap<KeywordGroup> = Int2ObjectRBTreeMap ()
 
     fun clearRecipeKeywords() {
         recipeKeywords.clear()
     }
 
-    fun getRecipeKeywords(): MutableList<KeywordGroup> {
-        recipeKeywords.sortWith(
-            Comparator
-                .comparing(KeywordGroup::isMapped).reversed()
-                .thenComparing(KeywordGroup::priority, Comparator.reverseOrder())
-        )
+    fun getRecipeKeywords(): Int2ObjectSortedMap<KeywordGroup> {
         return recipeKeywords
     }
 
-    fun collectRecipeKeyword(name: String, priority: Int, findMapping: Boolean) {
+    fun collectRecipeKeyword(name: String, priority: Int) {
         val group = KeywordGroup.literal(name)
         group.priority = priority
-        if (findMapping) group.findMapping(true)
-        recipeKeywords.add(group)
+        recipeKeywords[priority]=group
     }
 
     /** @param recipe (J)EmiRecipe或RecipeHolder
@@ -116,29 +112,29 @@ object AliasGetter {
     fun tryCollectKeywords(recipe: Any?) {
         recipeKeywords.clear()
         if (recipe == null) return
-        val keys = HashMap<String, Int>()
+        val keys = HashMap<Int,String>()
 
-        if (ContextModLoaded.emi.isLoaded) {
-            var workstations: MutableList<EmiIngredient> = ArrayList<EmiIngredient>()
+        if (ContextModLoaded.emi.isLoaded) {//TODO emi Use id first
+            var workstations: MutableList<EmiIngredient> = ArrayList()
             var categoryName: Component = Component.empty()
 
             if (recipe is JemiRecipe<*>) {
                 workstations = EmiApi.getRecipeManager().getWorkstations(recipe.recipeCategory)
                 categoryName = recipe.category.title
 
-                keys[recipe.category.title.string] = 3
+                keys[3] = recipe.category.title.string
                 if (recipe.originalId != null) {
-                    keys[recipe.originalId.toString().split("/")[0]] = 2
-                    keys[recipe.originalId.path.split("/")[0]] = 1
+                    keys[0] = recipe.originalId.toString().split("/")[0]
+                    keys[9] = recipe.originalId.path.split("/")[0]
                 }
             } else if (recipe is EmiRecipe) {
                 workstations = EmiApi.getRecipeManager().getWorkstations(recipe.category)
                 categoryName = recipe.category.name
 
-                keys[recipe.category.name.string] = 3
+                keys[3] = recipe.category.name.string
                 if (recipe.id != null) {
-                    keys[recipe.id.toString().split("/")[0]] = 2
-                    keys[recipe.id!!.path.split("/")[0]] = 1
+                    keys[0] = recipe.id.toString().split("/")[0]
+                    keys[9] = recipe.id!!.path.split("/")[0]
                 }
             }
 
@@ -169,25 +165,25 @@ object AliasGetter {
                 groupWorkstation.priority = 4
                 groupWorkstation.findMapping(false)
 
-                recipeKeywords.add(groupWorkstation)
+                recipeKeywords[4]=groupWorkstation
             }
         }
 
         if (recipe is RecipeHolder<*>) {
-            keys[recipe.id().toString().split("/")[0]] = 2
-            keys[recipe.id().path.split("/")[0]] = 1
+            keys[0] = recipe.id().toString().split("/")[0]
+            keys[10] = recipe.id().path.split("/")[0]
         }
 
         keys.entries.stream()
-            .filter { entry -> entry.key.isBlank() }
-            .sorted { a, b -> Comparator.reverseOrder<Int>().compare(a.value, b.value) }
+            .filter { entry -> !entry.value.isBlank() }
+            .sorted { a, b -> Comparator.naturalOrder<Int>().compare(a.key, b.key) }
             .forEach { entry ->
                 collectRecipeKeyword(
-                    entry.key,
                     entry.value,
-                    true
+                    entry.key
                 )
             }
+        keys[0]?.let {text -> findMapping(text)?.let { text->collectRecipeKeyword(text,1) }  }
     }
 
     class KeywordGroup(keywords: MutableCollection<String>, groupDescription: Component) {

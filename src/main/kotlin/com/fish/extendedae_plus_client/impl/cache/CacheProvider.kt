@@ -69,9 +69,9 @@ object CacheProvider {
     fun putProvider(container: PatternContainerRecord, mabeHasSlot: Boolean) {
         if (mabeHasSlot) {
             providerList.getOrPut(container.group) { mutableListOf() }.add(container)
-            val bs=providerSlots.getOrPut(container.group, { HashMap() })
-            .getOrPut(container, { BitSet(container.inventory.size()) })
-            container.inventory.forEachIndexed { index, stack ->bs[index]=stack!= ItemStack.EMPTY }
+            val bs = providerSlots.getOrPut(container.group, { HashMap() })
+                .getOrPut(container, { BitSet(container.inventory.size()) })
+            container.inventory.forEachIndexed { index, stack -> bs[index] = stack != ItemStack.EMPTY }
         } else {
             providerList.getOrPut(container.group) { mutableListOf() }
         }
@@ -79,20 +79,27 @@ object CacheProvider {
 
     @JvmStatic
     fun setSlots(record: PatternContainerRecord, idx: Int, used: Boolean) {
-        providerSlots.getOrPut(record.group, { HashMap() })
-            .getOrPut(record, { BitSet(record.inventory.size()) })[idx] = used;
+        providerSlots.getOrPut(record.group, { HashMap() })[record]?.let { it -> it[idx] = used; }
     }
 
     @JvmStatic
     fun getAvailableSlots(group: PatternContainerGroup): Int {
         var all = 0
-        var used = 0
-        providerSlots.getOrPut(group, { HashMap() })
-            .forEach { record, set ->
-                all += record.inventory.size()
-                used += set.cardinality()
+        val map = providerSlots.getOrPut(group) { HashMap() } // Map<PatternContainerRecord, BitSet?>
+        val it = map.entries.iterator()
+        while (it.hasNext()) {
+            val (record, set) = it.next()
+
+            val used = set.cardinality()
+            val canUsed = record.inventory.size() - used
+            if (canUsed > 0) {
+                all += canUsed
+            } else {
+                it.remove() // 删除当前 record
             }
-        return all-used;
+        }
+
+        return all
     }
 
     @JvmStatic

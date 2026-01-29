@@ -24,6 +24,8 @@ import com.fish.extendedae_plus_client.render.widgets.button.EAEPActionItems
 import com.fish.extendedae_plus_client.util.UtilKeyBuilder
 import guideme.document.LytRect
 import guideme.render.SimpleRenderContext
+import it.unimi.dsi.fastutil.ints.Int2ObjectRBTreeMap
+import it.unimi.dsi.fastutil.ints.Int2ObjectSortedMap
 import net.minecraft.ChatFormatting
 import net.minecraft.client.Minecraft
 import net.minecraft.client.gui.ComponentPath
@@ -51,7 +53,7 @@ class ScreenProviderList<TMenu : PatternEncodingTermMenu, TScreen : PatternEncod
     private var visibleRows = 0
     private var focusedRow = -1
 
-    private val queries: MutableList<KeywordGroup> = ArrayList()
+    private val queries: Int2ObjectSortedMap<KeywordGroup> = Int2ObjectRBTreeMap ()
     private var selectedQueryIndex: Int
     private var customQuery = ""
     private var queryRefresh = false
@@ -93,23 +95,30 @@ class ScreenProviderList<TMenu : PatternEncodingTermMenu, TScreen : PatternEncod
         this.scrollbar = this.widgets.addScrollBar("scrollbar", Scrollbar.BIG)
         this.scrollbar.setHeight(5 * ROW_HEIGHT)
 
-        this.queries.addAll(AliasGetter.getRecipeKeywords())
-        AliasGetter.clearRecipeKeywords()
-        this.selectedQueryIndex = if (this.queries.isEmpty()) -1 else 0
+        this.queries.putAll(AliasGetter.getRecipeKeywords())
+        this.selectedQueryIndex = if (this.queries.isEmpty()) -1 else if(this.queries.size>=2) 1 else 0
 
         this.fieldSearch = this.widgets.addTextField("field_search")
-        this.fieldSearch.setMaxLength(64)
+        this.fieldSearch.setMaxLength(32)
+        if(queries.isNotEmpty()) this.fieldSearch.value=queries.values.elementAtOrNull(0)!!.getDescription().string
         this.fieldSearch.setResponder { value: String ->
+            if(!fieldAlias.value.isBlank())return@setResponder
             if (value == this.selectedQuery().getDescription().string) return@setResponder
-            if (this.queries.contains(KeywordGroup.literal(value))) return@setResponder
-            this.queries.clear()
-            this.selectedQueryIndex = -1
+            if (this.queries.containsValue(KeywordGroup.literal(value))) return@setResponder
+            this.selectedQueryIndex = -1//TODO fix
             this.customQuery = value
             this.queryRefresh = true
         }
         this.fieldSearch.placeholder = GuiText.SearchPlaceholder.text()
 
         this.fieldAlias = this.widgets.addTextField("field_alias")
+        this.fieldAlias.setResponder { value: String ->
+            if (value == this.selectedQuery().getDescription().string) return@setResponder
+            if (this.queries.containsValue(KeywordGroup.literal(value))) return@setResponder
+            this.selectedQueryIndex = -1
+            this.customQuery = value
+            this.queryRefresh = true
+        }
         this.fieldAlias.placeholder = UtilKeyBuilder.of(UtilKeyBuilder.screen)
             .addStr("provider_list")
             .addStr("alias")
@@ -132,7 +141,7 @@ class ScreenProviderList<TMenu : PatternEncodingTermMenu, TScreen : PatternEncod
         super.containerTick()
         if (this.queryRefresh) {
             this.queryRefresh = false
-            this.fieldSearch.value = this.selectedQuery().getDescription().string
+            this.fieldAlias.value = this.selectedQuery().getDescription().string
             this.rebuildKeywordsTooltip()
             this.updateInfo()
             this.scrollbar.setRange(0, this.providersFiltered.size - this.visibleRows, 2)
@@ -239,8 +248,7 @@ class ScreenProviderList<TMenu : PatternEncodingTermMenu, TScreen : PatternEncod
     }
 
     private fun selectedQuery(): KeywordGroup {
-        if (this.queryIndexValid()) return this.queries[this.selectedQueryIndex]
-        return KeywordGroup.literal(this.customQuery)
+        return this.queries.values.elementAtOrNull(this.selectedQueryIndex)?:KeywordGroup.literal(this.customQuery)
     }
 
     private fun toggleTerminalStyle(button: SettingToggleButton<TerminalStyle>, backwards: Boolean) {
@@ -268,14 +276,14 @@ class ScreenProviderList<TMenu : PatternEncodingTermMenu, TScreen : PatternEncod
             .addStr("provider_list")
             .addStr("candidate_keywords")
             .build()
-        for (i in this.queries.indices) {
-            val group = this.queries[i]
+        for (i in this.queries.values.indices) {
+            val group = this.queries.values.elementAtOrNull(i) ?: continue
             if (i == selectedQueryIndex) candidateQuery
                 .append(Component.literal("\n→ ").withStyle(ChatFormatting.GREEN))
                 .append(group.getDescription())
             else candidateQuery.append("\n").append(group.getDescription().copy().withStyle(ChatFormatting.GRAY))
         }
-        this.fieldSearch.tooltip = Tooltip.create(candidateQuery)
+        this.fieldAlias.tooltip = Tooltip.create(candidateQuery)
     }
 
     private fun getHoveredLineIndex(x: Double, y: Double): Int {
@@ -307,14 +315,9 @@ class ScreenProviderList<TMenu : PatternEncodingTermMenu, TScreen : PatternEncod
         )
     }
 
-    private fun queryIndexValid(): Boolean {
-        return this.selectedQueryIndex >= 0
-                && this.selectedQueryIndex < this.queries.size
-    }
-
     private fun addMapping() {
         val selectedQuery = this.selectedQuery()
-        val searchKey = selectedQuery.getDescription().string
+        val searchKey = this.fieldSearch.value
         val aliasToSet = this.fieldAlias.value.trim()
         val player = Minecraft.getInstance().player
 
@@ -342,13 +345,10 @@ class ScreenProviderList<TMenu : PatternEncodingTermMenu, TScreen : PatternEncod
             )
 
             // 将刚添加的中文名写入搜索框，作为当前查询
-            this.queries.clear()
 
             val newAliasGroup = KeywordGroup.literal(aliasToSet)
-            this.queries.addFirst(newAliasGroup)
-            this.selectedQueryIndex = 0
-
-            this.fieldSearch.value = aliasToSet
+            this.queries[1]=newAliasGroup
+            this.selectedQueryIndex = 1
             this.queryRefresh = true
         } else {
             player?.displayClientMessage(
@@ -375,7 +375,6 @@ class ScreenProviderList<TMenu : PatternEncodingTermMenu, TScreen : PatternEncod
                     .build(),
                 false
             )
-            this.fieldAlias.value = this.fieldSearch.value
             return
         }
         val removed = AliasGetter.removeAliases(aliasToDelete)
@@ -389,8 +388,10 @@ class ScreenProviderList<TMenu : PatternEncodingTermMenu, TScreen : PatternEncod
                     .build(),
                 false
             )
+            this.queries.remove(1)
+            this.selectedQueryIndex = if (this.queries.isEmpty()) -1 else if(this.queries.size>=2) 1 else 0
+            this.fieldAlias.value=selectedQuery().getDescription().string
             this.queryRefresh = true
-            this.queries.clear()
         } else {
             player?.displayClientMessage(
                 UtilKeyBuilder.of(UtilKeyBuilder.message)
@@ -472,7 +473,7 @@ class ScreenProviderList<TMenu : PatternEncodingTermMenu, TScreen : PatternEncod
 
         val reverse = deltaY > 0
 
-        if (this.fieldSearch.isMouseOver(x, y) && this.queryIndexValid()) {
+        if (this.fieldAlias.isMouseOver(x, y)) {
             if (this.selectedQueryIndex == -1) this.selectedQueryIndex = 0
 
             if (reverse && this.selectedQueryIndex == 0) this.selectedQueryIndex = this.queries.size - 1
