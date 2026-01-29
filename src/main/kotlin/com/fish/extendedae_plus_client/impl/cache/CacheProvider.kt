@@ -20,18 +20,37 @@ object CacheProvider {
     private val providerSlots: MutableMap<PatternContainerGroup, MutableMap<PatternContainerRecord, BitSet>> = HashMap()
 
     @JvmStatic
+    private val markedCount: MutableMap<PatternContainerGroup, Int> = HashMap()
+
+    private fun incMark(group: PatternContainerGroup) {
+        markedCount[group] = (markedCount[group] ?: 0) + 1
+    }
+
+    private fun decMark(group: PatternContainerGroup) {
+        val v = (markedCount[group] ?: 0) - 1
+        if (v <= 0) markedCount.remove(group) else markedCount[group] = v
+    }
+
+    @JvmStatic
     fun markPattern(pattern: IPatternDetails, container: PatternContainerGroup) {
-        selectedProvider[pattern] = container
+        val old = selectedProvider.put(pattern, container)
+        if (old == null) {
+            incMark(container)
+        } else if (old != container) {
+            decMark(old)
+            incMark(container)
+        }
     }
 
     @JvmStatic
     fun unmarkPattern(pattern: IPatternDetails) {
-        selectedProvider.remove(pattern)
+        val old = selectedProvider.remove(pattern)
+        if (old != null) decMark(old)
     }
 
     @JvmStatic
     fun markPatternAlready(pattern: IPatternDetails) {
-        selectedPattern.add(pattern);
+        selectedPattern.add(pattern)
     }
 
     @JvmStatic
@@ -42,6 +61,7 @@ object CacheProvider {
     @JvmStatic
     fun clearPattern() {
         selectedProvider.clear()
+        markedCount.clear()
     }
 
     @JvmStatic
@@ -69,8 +89,8 @@ object CacheProvider {
     fun putProvider(container: PatternContainerRecord, mabeHasSlot: Boolean) {
         if (mabeHasSlot) {
             providerList.getOrPut(container.group) { mutableListOf() }.add(container)
-            val bs = providerSlots.getOrPut(container.group, { HashMap() })
-                .getOrPut(container, { BitSet(container.inventory.size()) })
+            val bs = providerSlots.getOrPut(container.group) { HashMap() }
+                .getOrPut(container) { BitSet(container.inventory.size()) }
             container.inventory.forEachIndexed { index, stack -> bs[index] = stack != ItemStack.EMPTY }
         } else {
             providerList.getOrPut(container.group) { mutableListOf() }
@@ -79,32 +99,34 @@ object CacheProvider {
 
     @JvmStatic
     fun setSlots(record: PatternContainerRecord, idx: Int, used: Boolean) {
-        providerSlots.getOrPut(record.group, { HashMap() })[record]?.let { it -> it[idx] = used; }
+        providerSlots.getOrPut(record.group) { HashMap() }[record]?.let { it -> it[idx] = used; }
     }
 
     @JvmStatic
     fun getAvailableSlots(group: PatternContainerGroup): Int {
         var all = 0
-        val map = providerSlots.getOrPut(group) { HashMap() } // Map<PatternContainerRecord, BitSet?>
+        val map = providerSlots.getOrPut(group) { HashMap() }
         val it = map.entries.iterator()
         while (it.hasNext()) {
             val (record, set) = it.next()
-
             val used = set.cardinality()
             val canUsed = record.inventory.size() - used
             if (canUsed > 0) {
                 all += canUsed
             } else {
-                it.remove() // 删除当前 record
+                it.remove()
             }
         }
 
-        return all
+        // ===== 新增：减去 markPattern 占位 =====
+        val reserved = markedCount[group] ?: 0
+        val left = all - reserved
+        return if (left > 0) left else 0
+        // ====================================
     }
 
     @JvmStatic
     fun getAvailableProvider(group: PatternContainerGroup): PatternContainerRecord? {
-        // 任意返回一个“未满”的：inventory 里存在空槽就认为可用
         val list = providerList[group] ?: return null
         for (rec in list) {
             val inv = rec.inventory
@@ -113,8 +135,7 @@ object CacheProvider {
                 if (inv.getStackInSlot(i).isEmpty) return rec
             }
         }
-
-        return null;
+        return null
     }
 
     @JvmStatic
@@ -124,7 +145,7 @@ object CacheProvider {
 
     @JvmStatic
     fun isEmpty(): Boolean {
-        return providerList.isEmpty();
+        return providerList.isEmpty()
     }
 
     @JvmStatic

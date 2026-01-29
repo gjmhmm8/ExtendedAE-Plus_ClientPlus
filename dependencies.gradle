@@ -8,7 +8,7 @@ dependencies {
     implementation libs.ae2wt
     implementation libs.jade
     implementation libs.jech
-    compileOnly libs.emi
+    implementation libs.emi
     implementation libs.jei
     implementation libs.ae2Jei
     implementation libs.ftbTeams

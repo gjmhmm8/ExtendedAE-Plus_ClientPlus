@@ -5,7 +5,6 @@ import com.electronwill.nightconfig.core.file.FileConfig
 import com.electronwill.nightconfig.core.file.FileConfig.builder
 import com.electronwill.nightconfig.toml.TomlFormat.instance
 import com.fish.extendedae_plus_client.integration.ContextModLoaded
-import com.fish.extendedae_plus_client.util.UtilKeyBuilder
 import com.google.gson.GsonBuilder
 import com.google.gson.JsonObject
 import dev.emi.emi.api.EmiApi
@@ -15,13 +14,13 @@ import dev.emi.emi.api.stack.EmiStack
 import dev.emi.emi.jemi.JemiRecipe
 import it.unimi.dsi.fastutil.ints.Int2ObjectRBTreeMap
 import it.unimi.dsi.fastutil.ints.Int2ObjectSortedMap
+import net.minecraft.core.registries.BuiltInRegistries
 import net.minecraft.network.chat.Component
 import net.minecraft.network.chat.contents.PlainTextContents
 import net.minecraft.network.chat.contents.TranslatableContents
 import net.minecraft.world.item.crafting.RecipeHolder
 import net.neoforged.fml.loading.FMLPaths
 import java.nio.file.Files
-import java.util.function.Predicate
 import kotlin.concurrent.Volatile
 import kotlin.io.path.deleteIfExists
 import kotlin.io.path.exists
@@ -90,20 +89,24 @@ object AliasGetter {
 
     /** 收集到处理配方的关键词（按优先级排序） */
     @Volatile
-    private var recipeKeywords: Int2ObjectSortedMap<KeywordGroup> = Int2ObjectRBTreeMap ()
+    private var recipeKeywords: Int2ObjectSortedMap<Component> = Int2ObjectRBTreeMap()
+
+    @Volatile
+    private var keywords: MutableSet<String> = HashSet()
 
     fun clearRecipeKeywords() {
         recipeKeywords.clear()
     }
 
-    fun getRecipeKeywords(): Int2ObjectSortedMap<KeywordGroup> {
+    fun getRecipeKeywords(): Int2ObjectSortedMap<Component> {
         return recipeKeywords
     }
 
     fun collectRecipeKeyword(name: String, priority: Int) {
-        val group = KeywordGroup.literal(name)
-        group.priority = priority
-        recipeKeywords[priority]=group
+        if(keywords.contains(name))return
+        keywords.add(name)
+        val group = Component.literal(name)
+        recipeKeywords[priority] = group
     }
 
     /** @param recipe (J)EmiRecipe或RecipeHolder
@@ -112,28 +115,23 @@ object AliasGetter {
     fun tryCollectKeywords(recipe: Any?) {
         recipeKeywords.clear()
         if (recipe == null) return
-        val keys = HashMap<Int,String>()
+        val keys = HashMap<Int, String>()
 
         if (ContextModLoaded.emi.isLoaded) {//TODO emi Use id first
             var workstations: MutableList<EmiIngredient> = ArrayList()
-            var categoryName: Component = Component.empty()
 
             if (recipe is JemiRecipe<*>) {
                 workstations = EmiApi.getRecipeManager().getWorkstations(recipe.recipeCategory)
-                categoryName = recipe.category.title
-
+                keys[0] = recipe.category.recipeType.uid.toString()
                 keys[3] = recipe.category.title.string
                 if (recipe.originalId != null) {
-                    keys[0] = recipe.originalId.toString().split("/")[0]
                     keys[9] = recipe.originalId.path.split("/")[0]
                 }
             } else if (recipe is EmiRecipe) {
                 workstations = EmiApi.getRecipeManager().getWorkstations(recipe.category)
-                categoryName = recipe.category.name
-
+                keys[0] = recipe.category.id.toString()
                 keys[3] = recipe.category.name.string
                 if (recipe.id != null) {
-                    keys[0] = recipe.id.toString().split("/")[0]
                     keys[9] = recipe.id!!.path.split("/")[0]
                 }
             }
@@ -151,27 +149,17 @@ object AliasGetter {
                             if (contents is PlainTextContents) key = contents.text()
                             else if (contents is TranslatableContents) key = contents.key
                             if (key == null) return@forEach
-                            workstationKeys.add(key)
                         }
                 }
 
-                val groupWorkstation = KeywordGroup(
-                    workstationKeys,
-                    UtilKeyBuilder.of(UtilKeyBuilder.keywordGroup)
-                        .addStr("workstations")
-                        .args(categoryName.string)
-                        .build()
-                )
-                groupWorkstation.priority = 4
-                groupWorkstation.findMapping(false)
-
-                recipeKeywords[4]=groupWorkstation
+                workstationKeys.forEachIndexed { index, str -> collectRecipeKeyword(str,10 + index) }
             }
         }
 
         if (recipe is RecipeHolder<*>) {
-            keys[0] = recipe.id().toString().split("/")[0]
-            keys[10] = recipe.id().path.split("/")[0]
+            val key = BuiltInRegistries.RECIPE_TYPE.getKey(recipe.value.type)
+            keys[0] = key.toString()
+            keys[1000] = recipe.id().path.split("/")[0]
         }
 
         keys.entries.stream()
@@ -183,110 +171,47 @@ object AliasGetter {
                     entry.key
                 )
             }
-        keys[0]?.let {text -> findMapping(text)?.let { text->collectRecipeKeyword(text,1) }  }
+        keys[0]?.let { text -> findMapping(text)?.let { text -> recipeKeywords[1]= Component.literal(text) } }
     }
 
-    class KeywordGroup(keywords: MutableCollection<String>, groupDescription: Component) {
-        private val keywords: MutableList<String> = ArrayList<String>()
-        private var description: Component
-        var isMapped: Boolean = false
-            private set
-        var priority: Int = 0
+    @JvmStatic
+    fun matches(keyWord: Component,nameKey: String, i18nKey: String,icon: String): Boolean {
 
-        init {
-            this.keywords.addAll(keywords)
-            this.description = groupDescription
-        }
+        return nameMatches(keyWord.string, nameKey)||
+                i18nKeyMatches(keyWord.string, i18nKey)||
+                iconKeyMatches(keyWord.string, icon)
 
-        fun matches(nameKey: String, i18nKey: String): Boolean {
-            if (this.keywords.stream()
-                    .map(String::isBlank)
-                    .allMatch(Predicate.isEqual(true))
-            ) return true
+    }
 
-            return nameMatches(this.description.string, nameKey)
-                    || this.keywords.stream().anyMatch { key ->
-                nameMatches(key, nameKey)
-                        || i18nKeyMatches(key, i18nKey)
+    @JvmStatic
+    private fun nameMatches(matchKey: String?, searchKey: String?): Boolean {
+        if (matchKey.isNullOrBlank()) return false
+        if (searchKey.isNullOrBlank()) return true
+
+        var jechMatches = false
+        if (ContextModLoaded.jech.isLoaded) {
+            try {
+                val methodContains = Class.forName("me.towdium.jecharacters.utils.Match")
+                    .getMethod("contains", String::class.java, CharSequence::class.java)
+                jechMatches = methodContains.invoke(
+                    null, searchKey.lowercase(), matchKey.lowercase()
+                ) as Boolean
+            } catch (_: Throwable) {
             }
         }
 
-        fun getDescription(): Component {
-            return if (this.description.string.isEmpty())
-                Component.literal(this.keywords[0])
-            else this.description
-        }
+        return jechMatches || searchKey.lowercase().contains(matchKey.lowercase())
+    }
 
-        fun findMapping(mappingKeywords: Boolean) {
-            val mappedDesc = findMapping(this.description.string)
-            if (!mappedDesc.isNullOrBlank()) {
-                this.description = Component.literal(mappedDesc)
-                this.isMapped = true
-            }
+    @JvmStatic
+    private fun i18nKeyMatches(matchKey: String?, searchKey: String?): Boolean {
+        if (matchKey.isNullOrBlank() || searchKey.isNullOrEmpty()) return false
+        return searchKey.lowercase().contains(matchKey.lowercase())
+    }
 
-            if (!mappingKeywords) return
-
-            val mapped = booleanArrayOf(false)
-            val mappedList = this.keywords.stream().map { keyword ->
-                val mappedKey = findMapping(keyword)
-                if (mappedKey != null) {
-                    mapped[0] = true
-                    return@map mappedKey
-                } else return@map keyword
-            }.toList()
-            if (mapped[0]) this.isMapped = true
-
-            this.keywords.clear()
-            this.keywords.addAll(mappedList)
-        }
-
-        val isEmpty: Boolean
-            get() = keywords.isEmpty()
-
-        override fun equals(other: Any?): Boolean {
-            if (other !is KeywordGroup) return false
-            return this.keywords == other.keywords
-        }
-
-        companion object {
-            private var literalGroups: HashMap<String, KeywordGroup>? = null
-
-            fun literal(value: String): KeywordGroup {
-                if (literalGroups == null) literalGroups = HashMap<String, KeywordGroup>()
-                return literalGroups!!.computeIfAbsent(value) { _ ->
-                    KeywordGroup(
-                        mutableListOf(value),
-                        Component.empty()
-                    )
-                }
-            }
-
-            private fun nameMatches(matchKey: String?, searchKey: String?): Boolean {
-                if (matchKey.isNullOrBlank()) return false
-                if (searchKey.isNullOrBlank()) return true
-
-                var jechMatches = false
-                if (ContextModLoaded.jech.isLoaded) {
-                    try {
-                        val methodContains = Class.forName("me.towdium.jecharacters.utils.Match")
-                            .getMethod("contains", String::class.java, CharSequence::class.java)
-                        jechMatches = methodContains.invoke(
-                            null, searchKey.lowercase(), matchKey.lowercase()
-                        ) as Boolean
-                    } catch (_: Throwable) {
-                    }
-                }
-
-                return jechMatches
-                        || matchKey.lowercase().contains(searchKey.lowercase())
-                        || searchKey.lowercase().contains(matchKey.lowercase())
-            }
-
-            private fun i18nKeyMatches(matchKey: String?, searchKey: String?): Boolean {
-                if (matchKey.isNullOrBlank() || searchKey.isNullOrEmpty()) return false
-                return matchKey.lowercase().contains(searchKey.lowercase()) ||
-                        searchKey.lowercase().contains(matchKey.lowercase())
-            }
-        }
+    @JvmStatic
+    private fun iconKeyMatches(matchKey: String?, searchKey: String?): Boolean {
+        if (matchKey.isNullOrBlank() || searchKey.isNullOrEmpty()) return false
+        return matchKey.equals(searchKey, ignoreCase = true)
     }
 }

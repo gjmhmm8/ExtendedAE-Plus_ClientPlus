@@ -6,9 +6,7 @@ import appeng.client.gui.AEBaseScreen;
 import appeng.client.gui.me.patternaccess.PatternContainerRecord;
 import appeng.client.gui.style.ScreenStyle;
 import appeng.client.gui.widgets.AETextField;
-import appeng.menu.implementations.PatternAccessTermMenu;
 import com.fish.extendedae_plus_client.impl.cache.CacheProvider;
-import com.fish.extendedae_plus_client.mixin.impl.helper.HelperPAMenu;
 import com.fish.extendedae_plus_client.mixin.impl.helper.HelperPatternMoving;
 import com.glodblock.github.extendedae.client.gui.GuiExPatternTerminal;
 import com.glodblock.github.extendedae.container.ContainerExPatternTerminal;
@@ -75,11 +73,14 @@ public class MixinExAccessScreen<TMenu extends ContainerExPatternTerminal> exten
         for(var i:slots.int2ObjectEntrySet()){
             if(i.getValue()==ItemStack.EMPTY){
                 CacheProvider.putProvider(this.byId.get(inventoryId),true);
+                CacheProvider.setSlots(this.byId.get(inventoryId),i.getIntKey(),false);
                 var pattern=this.byId.get(inventoryId).getInventory().getStackInSlot(i.getIntKey());
                 var patternDetail=PatternDetailsHelper.decodePattern(pattern, this.getPlayer().level());
                 if (patternDetail != null) {
                     CacheProvider.unmarkPatternAlready(patternDetail);
                 }
+            }else{
+                CacheProvider.setSlots(this.byId.get(inventoryId),i.getIntKey(),true);
             }
             var patternDetail=PatternDetailsHelper.decodePattern(i.getValue(), this.getPlayer().level());
             if (patternDetail != null) {

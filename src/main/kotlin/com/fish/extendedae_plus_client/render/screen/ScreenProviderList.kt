@@ -17,7 +17,6 @@ import appeng.core.AppEng
 import appeng.core.localization.GuiText
 import appeng.menu.me.items.PatternEncodingTermMenu
 import com.fish.extendedae_plus_client.impl.AliasGetter
-import com.fish.extendedae_plus_client.impl.AliasGetter.KeywordGroup
 import com.fish.extendedae_plus_client.impl.cache.CacheProvider
 import com.fish.extendedae_plus_client.render.widgets.button.EAEPActionButton
 import com.fish.extendedae_plus_client.render.widgets.button.EAEPActionItems
@@ -53,7 +52,7 @@ class ScreenProviderList<TMenu : PatternEncodingTermMenu, TScreen : PatternEncod
     private var visibleRows = 0
     private var focusedRow = -1
 
-    private val queries: Int2ObjectSortedMap<KeywordGroup> = Int2ObjectRBTreeMap ()
+    private val queries: Int2ObjectSortedMap<Component> = Int2ObjectRBTreeMap ()
     private var selectedQueryIndex: Int
     private var customQuery = ""
     private var queryRefresh = false
@@ -96,25 +95,26 @@ class ScreenProviderList<TMenu : PatternEncodingTermMenu, TScreen : PatternEncod
         this.scrollbar.setHeight(5 * ROW_HEIGHT)
 
         this.queries.putAll(AliasGetter.getRecipeKeywords())
-        this.selectedQueryIndex = if (this.queries.isEmpty()) -1 else if(this.queries.size>=2) 1 else 0
+        this.selectedQueryIndex = if(queries.containsKey(1)) 1 else if (this.queries.isEmpty()) -1 else 0
 
         this.fieldSearch = this.widgets.addTextField("field_search")
-        this.fieldSearch.setMaxLength(32)
-        if(queries.isNotEmpty()) this.fieldSearch.value=queries.values.elementAtOrNull(0)!!.getDescription().string
+        this.fieldSearch.setMaxLength(64)
+        if(queries.isNotEmpty()) this.fieldSearch.value=queries.values.elementAtOrNull(0)!!.string
         this.fieldSearch.setResponder { value: String ->
             if(!fieldAlias.value.isBlank())return@setResponder
-            if (value == this.selectedQuery().getDescription().string) return@setResponder
-            if (this.queries.containsValue(KeywordGroup.literal(value))) return@setResponder
-            this.selectedQueryIndex = -1//TODO fix
+            if (value == this.selectedQuery().string) return@setResponder
+            if (this.queries.containsValue(Component.literal(value))) return@setResponder
+            this.selectedQueryIndex = -1
             this.customQuery = value
             this.queryRefresh = true
         }
         this.fieldSearch.placeholder = GuiText.SearchPlaceholder.text()
 
         this.fieldAlias = this.widgets.addTextField("field_alias")
+        this.fieldAlias.setMaxLength(64)
         this.fieldAlias.setResponder { value: String ->
-            if (value == this.selectedQuery().getDescription().string) return@setResponder
-            if (this.queries.containsValue(KeywordGroup.literal(value))) return@setResponder
+            if (value == this.selectedQuery().string) return@setResponder
+            if (this.queries.containsValue(Component.literal(value))) return@setResponder
             this.selectedQueryIndex = -1
             this.customQuery = value
             this.queryRefresh = true
@@ -141,7 +141,7 @@ class ScreenProviderList<TMenu : PatternEncodingTermMenu, TScreen : PatternEncod
         super.containerTick()
         if (this.queryRefresh) {
             this.queryRefresh = false
-            this.fieldAlias.value = this.selectedQuery().getDescription().string
+            this.fieldAlias.value = this.selectedQuery().string
             this.rebuildKeywordsTooltip()
             this.updateInfo()
             this.scrollbar.setRange(0, this.providersFiltered.size - this.visibleRows, 2)
@@ -234,7 +234,7 @@ class ScreenProviderList<TMenu : PatternEncodingTermMenu, TScreen : PatternEncod
 
         this.providersFiltered.clear()
         this.providers.forEach { (string: String, infoProvider: InfoProvider) ->
-            if (!this.selectedQuery().matches(string, infoProvider.i18nKey())) return@forEach
+            if (!AliasGetter.matches(this.selectedQuery(),string, infoProvider.i18nKey(),infoProvider.icon?.id?.toString() ?: "")) return@forEach
             this.providersFiltered.add(infoProvider)
         }
         this.focusedRow = if (this.providersFiltered.isEmpty()) -1 else 0
@@ -247,8 +247,8 @@ class ScreenProviderList<TMenu : PatternEncodingTermMenu, TScreen : PatternEncod
         this.returnToParent()
     }
 
-    private fun selectedQuery(): KeywordGroup {
-        return this.queries.values.elementAtOrNull(this.selectedQueryIndex)?:KeywordGroup.literal(this.customQuery)
+    private fun selectedQuery(): Component {
+        return this.queries.values.elementAtOrNull(this.selectedQueryIndex)?:Component.literal(this.customQuery)
     }
 
     private fun toggleTerminalStyle(button: SettingToggleButton<TerminalStyle>, backwards: Boolean) {
@@ -280,8 +280,8 @@ class ScreenProviderList<TMenu : PatternEncodingTermMenu, TScreen : PatternEncod
             val group = this.queries.values.elementAtOrNull(i) ?: continue
             if (i == selectedQueryIndex) candidateQuery
                 .append(Component.literal("\n→ ").withStyle(ChatFormatting.GREEN))
-                .append(group.getDescription())
-            else candidateQuery.append("\n").append(group.getDescription().copy().withStyle(ChatFormatting.GRAY))
+                .append(group)
+            else candidateQuery.append("\n").append(group.copy().withStyle(ChatFormatting.GRAY))
         }
         this.fieldAlias.tooltip = Tooltip.create(candidateQuery)
     }
@@ -321,12 +321,12 @@ class ScreenProviderList<TMenu : PatternEncodingTermMenu, TScreen : PatternEncod
         val aliasToSet = this.fieldAlias.value.trim()
         val player = Minecraft.getInstance().player
 
-        if (selectedQuery.isEmpty || aliasToSet.isEmpty()) {
+        if (selectedQuery.string.isEmpty() || aliasToSet.isEmpty()) {
             player?.displayClientMessage(
                 UtilKeyBuilder.of(UtilKeyBuilder.message)
                     .addStr("provider_list")
                     .addStr("add_alias")
-                    .addStr(selectedQuery.isEmpty, "empty_query", "empty_alias")
+                    .addStr(selectedQuery.string.isEmpty(), "empty_query", "empty_alias")
                     .build(),
                 false
             )
@@ -343,10 +343,7 @@ class ScreenProviderList<TMenu : PatternEncodingTermMenu, TScreen : PatternEncod
                     .build(),
                 false
             )
-
-            // 将刚添加的中文名写入搜索框，作为当前查询
-
-            val newAliasGroup = KeywordGroup.literal(aliasToSet)
+            val newAliasGroup = Component.literal(aliasToSet)
             this.queries[1]=newAliasGroup
             this.selectedQueryIndex = 1
             this.queryRefresh = true
@@ -389,8 +386,8 @@ class ScreenProviderList<TMenu : PatternEncodingTermMenu, TScreen : PatternEncod
                 false
             )
             this.queries.remove(1)
-            this.selectedQueryIndex = if (this.queries.isEmpty()) -1 else if(this.queries.size>=2) 1 else 0
-            this.fieldAlias.value=selectedQuery().getDescription().string
+            this.selectedQueryIndex = if (this.queries.isEmpty()) -1 else 0
+            this.fieldAlias.value=selectedQuery().string
             this.queryRefresh = true
         } else {
             player?.displayClientMessage(
