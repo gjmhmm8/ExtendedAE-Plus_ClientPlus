@@ -2,31 +2,32 @@ package com.fish.extendedae_plus_client.mixin.impl.helper;
 
 import appeng.api.crafting.IPatternDetails;
 import appeng.api.crafting.PatternDetailsHelper;
+import appeng.api.implementations.blockentities.PatternContainerGroup;
 import appeng.client.gui.AEBaseScreen;
-import appeng.client.gui.me.patternaccess.PatternContainerRecord;
 import appeng.core.network.serverbound.InventoryActionPacket;
 import appeng.helpers.InventoryAction;
 import com.fish.extendedae_plus_client.config.EAEPCConfig;
 import com.fish.extendedae_plus_client.config.enums.AutoUploadMode;
 import com.fish.extendedae_plus_client.impl.cache.CacheProvider;
 import com.mojang.datafixers.util.Pair;
+import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
 import net.minecraft.client.Minecraft;
+import net.minecraft.network.protocol.game.ServerboundContainerClickPacket;
 import net.minecraft.world.inventory.ClickType;
 import net.minecraft.world.item.ItemStack;
 import net.neoforged.neoforge.network.PacketDistributor;
-import org.lwjgl.glfw.GLFW;
 
 import java.util.*;
 
 public final class HelperPatternMoving {
     private final AEBaseScreen<?> host;
 
-    private final Map<Long, Set<Integer>> cacheUsedSlots;
-    private final List<Pair<Integer, Pair<IPatternDetails,PatternContainerRecord>>> patterns;
-    private final Set<IPatternDetails> cache=new HashSet<>();
+    private final Map<Long, Integer> cacheUsedSlots;
+    private final List<Pair<Integer, Pair<IPatternDetails, PatternContainerGroup>>> patterns;
+    private final Set<IPatternDetails> cache = new HashSet<>();
+    private final Map<IPatternDetails, PatternContainerGroup> perSuccess=new HashMap<>();
     private int delay = EAEPCConfig.autoTransferDelay.getAsInt();
-    private boolean moving;
-    private boolean completed;
+    private boolean perCompleted=false;
 
     public HelperPatternMoving(AEBaseScreen<?> host) {
         this.host = host;
@@ -34,18 +35,28 @@ public final class HelperPatternMoving {
         this.cacheUsedSlots = new HashMap<>();
     }
 
-    public void clearReservation() {
+    public void onClose() {
         this.cacheUsedSlots.clear();
+        for(var i:perSuccess.entrySet()){
+            CacheProvider.markPattern(i.getKey(),i.getValue());
+        }
     }
 
     public boolean isEmpty() {
         return this.patterns.isEmpty();
     }
 
-    public void movePattern() {//TODO 闭环控制
-        if (completed) return;
-        if(EAEPCConfig.autoUploadMode.get()== AutoUploadMode.NONE){
-            completed=true;
+    public void markSuccess(IPatternDetails patternDetails){//TODO 闭环控制
+        perSuccess.remove(patternDetails);
+    }
+
+    public void movePattern() {
+        if(perCompleted && perSuccess.isEmpty()){
+            WTLibHelper.goBackCyc();
+        }
+        if (perCompleted) return;
+        if (EAEPCConfig.autoUploadMode.get() == AutoUploadMode.NONE) {
+            perCompleted = true;
             return;
         }
         if (this.delay > 0) {
@@ -58,106 +69,82 @@ public final class HelperPatternMoving {
         if (this.patterns.isEmpty()) return;
 
         var info = this.patterns.getFirst();
+        var perSuccess = this.movePatternNew(info.getFirst(), info.getSecond().getSecond());
 
-        var stateLastHolding = this.moving;
-        var slot=this.movePattern(info.getFirst(), info.getSecond().getSecond());
-
-        if ((stateLastHolding && !this.moving)
-                || !(stateLastHolding || this.moving)){
-            CacheProvider.markPatternAlready(info.getSecond().getFirst());
-            if(slot==-1)throw new RuntimeException("idx is -1");
-            CacheProvider.setSlots(info.getSecond().getSecond(),slot,true);
+        if (perSuccess) {
+            this.perSuccess.put(info.getSecond().getFirst(), info.getSecond().getSecond());
             this.patterns.removeFirst();
+        }else{
+            this.patterns.removeFirst();
+            this.patterns.addLast(info);
         }
 
-
-        if (this.patterns.isEmpty()){
-            this.completed = true;
+        if (this.patterns.isEmpty()) {
+            this.perCompleted = true;
             CacheProvider.clearPattern();
-            WTLibHelper.goBackCyc();
         }
     }
 
     private void filterPattern() {
         if (Minecraft.getInstance().player == null) return;
-        this.clearReservation();
+        this.onClose();
 
         var inv = Minecraft.getInstance().player.getInventory().items;
         for (int index = 0; index < inv.size(); index++) {
             ItemStack stack = inv.get(index);
             if (stack.isEmpty()) continue;
-            var details=PatternDetailsHelper.decodePattern(stack, Minecraft.getInstance().level);
-            if(details==null || CacheProvider.hasPatternAlready(details) || cache.contains(details))continue;
+            var details = PatternDetailsHelper.decodePattern(stack, Minecraft.getInstance().level);
+            if (details == null || CacheProvider.hasPatternAlready(details) || cache.contains(details)) continue;
             cache.add(details);
 
             var hashGroup = CacheProvider.findProvider(details);
             if (hashGroup == null) continue;
 
-            var providerInfo = CacheProvider.getAvailableProvider(hashGroup);
-            if (providerInfo == null) continue;
-
-            this.patterns.add(new Pair<>(index, new Pair<>(details,providerInfo)));
+            this.patterns.add(new Pair<>(index, new Pair<>(details, hashGroup)));
         }
     }
 
-    private int movePattern(Integer slot, PatternContainerRecord providerInfo) {
+    private boolean movePatternNew(Integer slot, PatternContainerGroup group) {
         if (CacheProvider.isEmpty()) {
-            this.moving = false;
-            return -1;
+            return false;
         }
+        var menu = this.host.getMenu();
+        var player = Minecraft.getInstance().player;
+        var providerInfo = CacheProvider.getAvailableProvider(group);
 
-        if (!this.host.getMenu().getCarried().isEmpty() && this.moving) {
-            int targetSlot = -1;
-            var inventory = providerInfo.getInventory();
-            long providerId = providerInfo.getServerId();
-
-            var used = cacheUsedSlots.computeIfAbsent(providerId, k -> new HashSet<>());
-            for (int i = 0; i < inventory.size(); i++) {
-                if (!inventory.getStackInSlot(i).isEmpty()) continue;
-                if (used.contains(i)) continue;
-
-                targetSlot = i;
-                break;
-            }
-
-            if (targetSlot == -1) {
-                this.moving = false;
-                return -1;
-            }
-
-            PacketDistributor.sendToServer(new InventoryActionPacket(
-                    InventoryAction.PICKUP_OR_SET_DOWN,
-                    targetSlot,
-                    providerId
-            ));
-
-            used.add(targetSlot);
-            this.moving = false;
-            return targetSlot;
-        } else {
-            var menu = this.host.getMenu();
-            var player = Minecraft.getInstance().player;
-            var gameMode = Minecraft.getInstance().gameMode;
-
-            if (player == null || gameMode == null
-                    || slot < 0 || slot > menu.slots.size()) {
-                this.moving = false;
-                return -1;
-            }
-            if (!menu.getSlot(slot).hasItem()) {
-                this.moving = false;
-                return -1;
-            }
-
-            gameMode.handleInventoryMouseClick(
-                    menu.containerId,
-                    slot,
-                    GLFW.GLFW_MOUSE_BUTTON_LEFT,
-                    ClickType.PICKUP,
-                    player
-            );
-            this.moving = true;
+        if (providerInfo == null) return false;
+        if (player == null || slot < 0 || slot > menu.slots.size()) {
+            return false;
         }
-        return -1;
+        if (!menu.getSlot(slot).hasItem()) {
+            return false;
+        }
+        player.connection.send(new ServerboundContainerClickPacket(
+                menu.containerId, 1, slot, 0,
+                ClickType.PICKUP, menu.getCarried(), new Int2ObjectOpenHashMap<>()
+        ));
+
+        int targetSlot = -1;
+        var inventory = providerInfo.getInventory();
+        long providerId = providerInfo.getServerId();
+
+        var used = cacheUsedSlots.getOrDefault(providerId, 0);
+        for (int i = used; i < inventory.size(); i++) {
+            if (!inventory.getStackInSlot(i).isEmpty()) continue;
+            targetSlot = i;
+            break;
+        }
+        if (targetSlot == -1) {
+            return false;
+        }
+        PacketDistributor.sendToServer(new InventoryActionPacket(
+                InventoryAction.PICKUP_OR_SET_DOWN,
+                targetSlot,
+                providerId
+        ));
+
+        cacheUsedSlots.put(providerId, targetSlot + 1);
+        CacheProvider.setSlots(providerInfo, slot, true);
+        return true;
     }
 }

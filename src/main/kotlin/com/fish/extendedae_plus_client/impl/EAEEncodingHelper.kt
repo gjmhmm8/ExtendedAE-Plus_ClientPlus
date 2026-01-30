@@ -4,7 +4,9 @@ import com.electronwill.nightconfig.core.Config
 import com.electronwill.nightconfig.core.file.FileConfig
 import com.electronwill.nightconfig.core.file.FileConfig.builder
 import com.electronwill.nightconfig.toml.TomlFormat.instance
+import com.fish.extendedae_plus_client.config.EAEPCConfig
 import com.fish.extendedae_plus_client.integration.ContextModLoaded
+import com.fish.extendedae_plus_client.mixin.impl.bridge.BridgePlanToEncode
 import com.google.gson.GsonBuilder
 import com.google.gson.JsonObject
 import dev.emi.emi.api.EmiApi
@@ -14,6 +16,8 @@ import dev.emi.emi.api.stack.EmiStack
 import dev.emi.emi.jemi.JemiRecipe
 import it.unimi.dsi.fastutil.ints.Int2ObjectRBTreeMap
 import it.unimi.dsi.fastutil.ints.Int2ObjectSortedMap
+import net.minecraft.client.Minecraft
+import net.minecraft.client.player.LocalPlayer
 import net.minecraft.core.registries.BuiltInRegistries
 import net.minecraft.network.chat.Component
 import net.minecraft.network.chat.contents.PlainTextContents
@@ -25,7 +29,7 @@ import kotlin.concurrent.Volatile
 import kotlin.io.path.deleteIfExists
 import kotlin.io.path.exists
 
-object AliasGetter {
+object EAEEncodingHelper {
     private val pathConfig = FMLPaths.CONFIGDIR.get().resolve("extendedae_plus/stored_alias.toml")
     private var pathConfigOld = pathConfig.parent.resolve("stored_alias.json")
     private val config: FileConfig = builder(pathConfig, instance()).autosave().autoreload().build()
@@ -173,6 +177,14 @@ object AliasGetter {
                 )
             }
         keys[0]?.let { text -> findMapping(text)?.let { text -> recipeKeywords[1]= Component.literal(text) } }
+    }
+
+    @JvmStatic
+    fun tiggerAutoEncoding(){
+        val player: LocalPlayer = Minecraft.getInstance().player ?: return
+        if (player.containerMenu !is BridgePlanToEncode) return
+        if (!EAEPCConfig.autoEncodingTiggerMode.get().shouldTigger()) return
+        (player.containerMenu as BridgePlanToEncode).`eaep$autoEncoding`()
     }
 
     @JvmStatic

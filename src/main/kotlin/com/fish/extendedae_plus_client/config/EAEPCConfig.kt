@@ -23,7 +23,11 @@ object EAEPCConfig {
     @JvmField
     val autoUploadMode: ModConfigSpec.EnumValue<AutoUploadMode>
     @JvmField
-    val tiggerMode: ModConfigSpec.EnumValue<TiggerMode>
+    val encodingTiggerMode: ModConfigSpec.EnumValue<TiggerMode>
+    @JvmField
+    val itemEditingTiggerMode: ModConfigSpec.EnumValue<TiggerMode>
+    @JvmField
+    val autoEncodingTiggerMode: ModConfigSpec.EnumValue<TiggerMode>
 
     init {
         val builder = ModConfigSpec.Builder()
@@ -32,7 +36,9 @@ object EAEPCConfig {
         autoTransferDelay = builder.defineInRange("autoTransferDelay", 10, 1, 40)
         modeEncodingTransfer = builder.defineEnum("modeEncodingTransfer", ModeEncodingTransfer.MERGE_ADJACENCY)
         autoUploadMode = builder.defineEnum("autoUploadMode", AutoUploadMode.AUTO_OPEN)
-        tiggerMode = builder.defineEnum("tiggerMode", TiggerMode.ON_NOT_SHIFT)
+        encodingTiggerMode = builder.defineEnum("encodingTiggerMode", TiggerMode.ON_NOT_SHIFT)
+        itemEditingTiggerMode = builder.defineEnum("itemEditingTiggerMode", TiggerMode.ON_CTRL)
+        autoEncodingTiggerMode = builder.defineEnum("autoEncodingTiggerMode", TiggerMode.ON_CTRL)
         SPEC = builder.build()
     }
 

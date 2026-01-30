@@ -121,7 +121,7 @@ object CacheProvider {
         // ===== 新增：减去 markPattern 占位 =====
         val reserved = markedCount[group] ?: 0
         val left = all - reserved
-        return if (left > 0) left else 0
+        return left
         // ====================================
     }
 

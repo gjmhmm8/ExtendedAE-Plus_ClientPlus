@@ -16,7 +16,7 @@ import appeng.core.AEConfig
 import appeng.core.AppEng
 import appeng.core.localization.GuiText
 import appeng.menu.me.items.PatternEncodingTermMenu
-import com.fish.extendedae_plus_client.impl.AliasGetter
+import com.fish.extendedae_plus_client.impl.EAEEncodingHelper
 import com.fish.extendedae_plus_client.impl.cache.CacheProvider
 import com.fish.extendedae_plus_client.render.widgets.button.EAEPActionButton
 import com.fish.extendedae_plus_client.render.widgets.button.EAEPActionItems
@@ -94,7 +94,7 @@ class ScreenProviderList<TMenu : PatternEncodingTermMenu, TScreen : PatternEncod
         this.scrollbar = this.widgets.addScrollBar("scrollbar", Scrollbar.BIG)
         this.scrollbar.setHeight(5 * ROW_HEIGHT)
 
-        this.queries.putAll(AliasGetter.getRecipeKeywords())
+        this.queries.putAll(EAEEncodingHelper.getRecipeKeywords())
         this.selectedQueryIndex = if(queries.containsKey(1)) 1 else if (this.queries.isEmpty()) -1 else 0
 
         this.fieldSearch = this.widgets.addTextField("field_search")
@@ -144,6 +144,15 @@ class ScreenProviderList<TMenu : PatternEncodingTermMenu, TScreen : PatternEncod
             this.updateInfo()
             this.scrollbar.setRange(0, this.providersFiltered.size - this.visibleRows, 2)
         }
+    }
+    fun tryAutoEncoding(): Boolean{
+        this.queryRefresh = true
+        this.containerTick()
+        if(this.selectedQueryIndex==1 && this.providersFiltered.size==1){
+            select(0)
+            return true
+        }
+        return false
     }
 
     override fun drawFG(guiGraphics: GuiGraphics, offsetX: Int, offsetY: Int, mouseX: Int, mouseY: Int) {
@@ -232,7 +241,7 @@ class ScreenProviderList<TMenu : PatternEncodingTermMenu, TScreen : PatternEncod
 
         this.providersFiltered.clear()
         this.providers.forEach { (string: String, infoProvider: InfoProvider) ->
-            if (!AliasGetter.matches(this.selectedQuery(),string, infoProvider.i18nKey(),infoProvider.icon?.id?.toString() ?: "")) return@forEach
+            if (!EAEEncodingHelper.matches(this.selectedQuery(),string, infoProvider.i18nKey(),infoProvider.icon?.id?.toString() ?: "")) return@forEach
             this.providersFiltered.add(infoProvider)
         }
         this.focusedRow = if (this.providersFiltered.isEmpty()) -1 else 0
@@ -240,9 +249,7 @@ class ScreenProviderList<TMenu : PatternEncodingTermMenu, TScreen : PatternEncod
 
     private fun select(indexProvider: Int) {
         val provider = this.providersFiltered[indexProvider]
-
         this.applier.accept(provider.group)
-        this.returnToParent()
     }
 
     private fun selectedQuery(): Component {
@@ -331,7 +338,7 @@ class ScreenProviderList<TMenu : PatternEncodingTermMenu, TScreen : PatternEncod
             return
         }
 
-        if (AliasGetter.addOrUpdateAlias(searchKey, aliasToSet)) {
+        if (EAEEncodingHelper.addOrUpdateAlias(searchKey, aliasToSet)) {
             player?.displayClientMessage(
                 UtilKeyBuilder.of(UtilKeyBuilder.message)
                     .addStr("provider_list")
@@ -372,7 +379,7 @@ class ScreenProviderList<TMenu : PatternEncodingTermMenu, TScreen : PatternEncod
             )
             return
         }
-        val removed = AliasGetter.removeAliases(aliasToDelete)
+        val removed = EAEEncodingHelper.removeAliases(aliasToDelete)
         if (removed > 0) {
             player?.displayClientMessage(
                 UtilKeyBuilder.of(UtilKeyBuilder.message)
@@ -404,6 +411,7 @@ class ScreenProviderList<TMenu : PatternEncodingTermMenu, TScreen : PatternEncod
         if (this.focusedRow >= 0
             && (keyCode == GLFW.GLFW_KEY_ENTER || keyCode == GLFW.GLFW_KEY_KP_ENTER)) {
             this.select(this.focusedRow)
+            this.returnToParent()
             return true
         }
 
@@ -451,6 +459,7 @@ class ScreenProviderList<TMenu : PatternEncodingTermMenu, TScreen : PatternEncod
             val indexProvider = this.getHoveredLineIndex(mouseX, mouseY)
             if (indexProvider >= 0 && this.focusedRow == indexProvider + this.scrollbar.currentScroll) {
                 this.select(indexProvider)
+                this.returnToParent()
                 return true
             }
         }

@@ -3,7 +3,7 @@ package com.fish.extendedae_plus_client.mixin.core.recipeViewer.emi;
 import appeng.integration.modules.emi.EmiEncodePatternHandler;
 import appeng.integration.modules.itemlists.EncodingHelper;
 import appeng.menu.AEBaseMenu;
-import com.fish.extendedae_plus_client.impl.AliasGetter;
+import com.fish.extendedae_plus_client.impl.EAEEncodingHelper;
 import dev.emi.emi.api.recipe.EmiRecipe;
 import net.minecraft.world.item.crafting.RecipeHolder;
 import org.spongepowered.asm.mixin.Mixin;
@@ -18,8 +18,8 @@ public abstract class MixinEncodePatternTransfer {
     private static void onTransfer(AEBaseMenu menu, RecipeHolder<?> holder,
                                    EmiRecipe emiRecipe, boolean doTransfer, CallbackInfoReturnable<?> cir) {
         if (!doTransfer) return;
+        EAEEncodingHelper.tiggerAutoEncoding();
         if (holder != null && EncodingHelper.isSupportedCraftingRecipe(holder.value())) return;
-
-        AliasGetter.tryCollectKeywords(emiRecipe);
+        EAEEncodingHelper.tryCollectKeywords(emiRecipe);
     }
 }

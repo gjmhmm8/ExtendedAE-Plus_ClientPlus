@@ -5,13 +5,13 @@ import appeng.client.gui.implementations.UpgradeableScreen;
 import appeng.client.gui.style.ScreenStyle;
 import appeng.menu.implementations.CellWorkbenchMenu;
 import appeng.menu.slot.CellPartitionSlot;
+import com.fish.extendedae_plus_client.config.EAEPCConfig;
 import com.fish.extendedae_plus_client.integration.ContextModLoaded;
 import com.fish.extendedae_plus_client.mixin.core.ftbLibrary.accessor.AccessorScreenBase;
 import com.fish.extendedae_plus_client.mixin.core.ftbLibrary.accessor.AccessorScreenNBTEditor;
 import dev.ftb.mods.ftblibrary.FTBLibraryCommands;
 import dev.ftb.mods.ftblibrary.nbtedit.NBTEditorScreen;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
@@ -35,6 +35,7 @@ public class MixinCellWorkbenchReproperties extends UpgradeableScreen<CellWorkbe
         super(menu, playerInventory, title, style);
     }
 
+    @SuppressWarnings("MixinAnnotationTarget")
     @Inject(method = "slotClicked", at = @At("HEAD"), cancellable = true)
     private void onSlotClick(@Nullable Slot slotUnchecked,
                              int slotIdx,
@@ -44,7 +45,7 @@ public class MixinCellWorkbenchReproperties extends UpgradeableScreen<CellWorkbe
         if (!ContextModLoaded.ftbLibrary.isLoaded()) return;
         if (!(slotUnchecked instanceof CellPartitionSlot slot)) return;
         if (!Minecraft.getInstance().options.keyPickItem.matchesMouse(mouseButton)) return;
-        if (!Screen.hasControlDown()) return;
+        if (!EAEPCConfig.itemEditingTiggerMode.get().shouldTigger()) return;
 
         this.eaep$editNBT(slot);
         ci.cancel();

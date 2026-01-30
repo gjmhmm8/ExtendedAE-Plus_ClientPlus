@@ -6,8 +6,9 @@ import appeng.client.gui.style.ScreenStyle;
 import appeng.core.network.serverbound.InventoryActionPacket;
 import appeng.helpers.InventoryAction;
 import appeng.menu.me.items.PatternEncodingTermMenu;
+import com.fish.extendedae_plus_client.config.EAEPCConfig;
+import com.fish.extendedae_plus_client.mixin.impl.helper.HelperEncodingTerminal;
 import com.fish.extendedae_plus_client.render.screen.ScreenStacksReproperties;
-import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.player.Inventory;
 import net.neoforged.neoforge.network.PacketDistributor;
@@ -30,7 +31,7 @@ public class MixinEncodingTerminalReproperties<TMenu extends PatternEncodingTerm
         if (!this.menu.canModifyAmountForSlot(this.hoveredSlot)) return;
 
         if (!this.minecraft.options.keyPickItem.matchesMouse(btn)) return;
-        if (!Screen.hasControlDown()) return;
+        if (!EAEPCConfig.itemEditingTiggerMode.get().shouldTigger()) return;
 
         var stack = this.hoveredSlot.getItem();
         var screen = new ScreenStacksReproperties<>(
@@ -45,5 +46,10 @@ public class MixinEncodingTerminalReproperties<TMenu extends PatternEncodingTerm
         );
         this.switchToScreen(screen);
         cir.setReturnValue(true);
+    }
+    @Override
+    public void containerTick(){
+        super.containerTick();
+        ((HelperEncodingTerminal)this.menu).eaep$tick();
     }
 }

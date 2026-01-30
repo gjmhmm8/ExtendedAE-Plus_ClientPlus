@@ -4,7 +4,6 @@ import appeng.api.stacks.GenericStack;
 import appeng.integration.modules.itemlists.EncodingHelper;
 import com.fish.extendedae_plus_client.config.EAEPCConfig;
 import com.google.common.math.LongMath;
-import net.minecraft.client.gui.screens.Screen;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -17,7 +16,7 @@ import java.util.Objects;
 public class MixinEncoding {
     @Inject(method = "addOrMerge", at = @At("HEAD"), cancellable = true)
     private static void onTransferAdding(List<GenericStack> stacks, GenericStack newStack, CallbackInfo ci) {
-        if (!Screen.hasShiftDown()) return;
+        if (!EAEPCConfig.encodingTiggerMode.get().shouldTigger()) return;
         switch (EAEPCConfig.modeEncodingTransfer.get()) {
             case INDEPENDENCE -> {
                 stacks.add(newStack);

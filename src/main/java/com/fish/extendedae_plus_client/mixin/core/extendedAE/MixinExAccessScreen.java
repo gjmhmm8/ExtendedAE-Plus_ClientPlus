@@ -47,9 +47,10 @@ public class MixinExAccessScreen<TMenu extends ContainerExPatternTerminal> exten
         this.eaep$helperMoving = new HelperPatternMoving(this);
     }
 
+    @SuppressWarnings("MixinAnnotationTarget")
     @Inject(method = "onClose", at = @At("HEAD"))
     private void onClose(CallbackInfo ci) {
-        this.eaep$helperMoving.clearReservation();
+        this.eaep$helperMoving.onClose();
     }
 
     @Inject(method = "postFullUpdate", at = @At("TAIL"))
@@ -70,22 +71,24 @@ public class MixinExAccessScreen<TMenu extends ContainerExPatternTerminal> exten
 
     @Inject(method = "postIncrementalUpdate", at = @At("HEAD"))
     private void onProviderListSyncInc(long inventoryId, Int2ObjectMap<ItemStack> slots, CallbackInfo ci) {
-        for(var i:slots.int2ObjectEntrySet()){
-            if(i.getValue()==ItemStack.EMPTY){
-                CacheProvider.putProvider(this.byId.get(inventoryId),true);
-                CacheProvider.setSlots(this.byId.get(inventoryId),i.getIntKey(),false);
-                var pattern=this.byId.get(inventoryId).getInventory().getStackInSlot(i.getIntKey());
-                var patternDetail=PatternDetailsHelper.decodePattern(pattern, this.getPlayer().level());
+        for (var i : slots.int2ObjectEntrySet()) {
+            if (i.getValue() == ItemStack.EMPTY) {
+                CacheProvider.putProvider(this.byId.get(inventoryId), true);
+                CacheProvider.setSlots(this.byId.get(inventoryId), i.getIntKey(), false);
+                var pattern = this.byId.get(inventoryId).getInventory().getStackInSlot(i.getIntKey());
+                var patternDetail = PatternDetailsHelper.decodePattern(pattern, this.getPlayer().level());
                 if (patternDetail != null) {
                     CacheProvider.unmarkPatternAlready(patternDetail);
                 }
-            }else{
-                CacheProvider.setSlots(this.byId.get(inventoryId),i.getIntKey(),true);
+            } else {
+                CacheProvider.setSlots(this.byId.get(inventoryId), i.getIntKey(), true);
+                var patternDetail = PatternDetailsHelper.decodePattern(i.getValue(), this.getPlayer().level());
+                if (patternDetail != null) {
+                    CacheProvider.markPatternAlready(patternDetail);
+                    this.eaep$helperMoving.markSuccess(patternDetail);
+                }
             }
-            var patternDetail=PatternDetailsHelper.decodePattern(i.getValue(), this.getPlayer().level());
-            if (patternDetail != null) {
-                CacheProvider.markPatternAlready(patternDetail);
-            }
+
         }
     }
 
@@ -95,6 +98,7 @@ public class MixinExAccessScreen<TMenu extends ContainerExPatternTerminal> exten
         this.searchField.setFocused(false);
     }
 
+    @SuppressWarnings("MixinAnnotationTarget")
     @Inject(method = "containerTick", at = @At("TAIL"))
     private void onUpdating(CallbackInfo ci) {
         this.eaep$helperMoving.movePattern();

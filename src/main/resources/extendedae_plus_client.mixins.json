@@ -27,7 +27,6 @@
     "minecraft.MixinButton",
     "recipeViewer.MixinEncodingHelper",
     "recipeViewer.emi.MixinEncodePatternTransfer",
-    "recipeViewer.emi.MixinRecipeFillButton",
     "recipeViewer.jei.MixinEncodePatternTransfer",
     "recipeViewer.jei.accessor.AccessorBookmarkOverlay"
   ],

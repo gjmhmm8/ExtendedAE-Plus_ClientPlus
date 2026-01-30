@@ -4,13 +4,13 @@ import appeng.api.parts.IPartHost;
 import appeng.api.parts.SelectedPart;
 import appeng.core.definitions.AEItems;
 import appeng.items.tools.quartz.QuartzCuttingKnifeItem;
+import com.fish.extendedae_plus_client.config.EAEPCConfig;
 import com.fish.extendedae_plus_client.impl.cache.CacheCuttingKnife;
 import com.fish.extendedae_plus_client.integration.ContextModLoaded;
 import com.fish.extendedae_plus_client.util.UtilKeyBuilder;
 import com.mojang.blaze3d.platform.Window;
 import com.mojang.logging.LogUtils;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.resources.language.I18n;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.InteractionResult;
@@ -58,16 +58,12 @@ public abstract class QuartzCuttingKnifeItemMixin {
         if (name == null || name.isBlank()) {
             return name;
         }
-        
         // 移除 Minecraft 分节符号 (§) 及其后面的字符
         name = name.replaceAll("§[0-9a-fk-or]", "");
-        
         // 移除多余的空白字符
         name = name.trim();
-        
         // 移除常见的格式字符
         name = name.replaceAll("[\\[\\](){}]", "");
-        
         return name;
     }
 
@@ -76,7 +72,7 @@ public abstract class QuartzCuttingKnifeItemMixin {
                                                     CallbackInfoReturnable<InteractionResult> cir) {
         Level level = context.getLevel();
         Player player = context.getPlayer();
-        if (!level.isClientSide() || player == null || !Screen.hasShiftDown()) {
+        if (!level.isClientSide() || player == null || !EAEPCConfig.encodingTiggerMode.get().shouldTigger()) {
             return;
         }
 
@@ -239,7 +235,7 @@ public abstract class QuartzCuttingKnifeItemMixin {
         try {
             // GLFW 路径 1：使用窗口句柄
             Window window = mc.getWindow();
-            long handle = window == null ? 0L : window.getWindow();
+            long handle = window.getWindow();
             if (handle != 0L) {
                 GLFW.glfwSetClipboardString(handle, text);
                 return true;

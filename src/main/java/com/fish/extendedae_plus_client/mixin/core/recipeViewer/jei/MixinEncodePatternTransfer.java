@@ -1,7 +1,7 @@
 package com.fish.extendedae_plus_client.mixin.core.recipeViewer.jei;
 
 import appeng.integration.modules.itemlists.EncodingHelper;
-import com.fish.extendedae_plus_client.impl.AliasGetter;
+import com.fish.extendedae_plus_client.impl.EAEEncodingHelper;
 import mezz.jei.api.gui.ingredient.IRecipeSlotsView;
 import mezz.jei.api.recipe.transfer.IRecipeTransferError;
 import net.minecraft.world.entity.player.Player;
@@ -26,11 +26,12 @@ public class MixinEncodePatternTransfer {
                             CallbackInfoReturnable<IRecipeTransferError> cir) {
         if (!doTransfer) return;
         if (ModList.get().isLoaded("emi")) return;
+        EAEEncodingHelper.tiggerAutoEncoding();
         if (!(recipeBase instanceof RecipeHolder<?> holder)
                 || EncodingHelper.isSupportedCraftingRecipe(holder.value()))
             return;
 
-        AliasGetter.tryCollectKeywords(holder);
+        EAEEncodingHelper.tryCollectKeywords(holder);
         // Jei的这神必workstation真的能搞到吗?????
     }
 }

@@ -9,24 +9,24 @@ import appeng.menu.me.common.MEStorageMenu;
 import appeng.menu.me.items.PatternEncodingTermMenu;
 import appeng.menu.slot.RestrictedInputSlot;
 import appeng.parts.encoding.EncodingMode;
-import com.fish.extendedae_plus_client.config.enums.AutoUploadMode;
 import com.fish.extendedae_plus_client.config.EAEPCConfig;
+import com.fish.extendedae_plus_client.config.enums.AutoUploadMode;
 import com.fish.extendedae_plus_client.impl.cache.CacheProvider;
 import com.fish.extendedae_plus_client.mixin.impl.bridge.BridgePlanToEncode;
+import com.fish.extendedae_plus_client.mixin.impl.helper.AutoEncodingStage;
+import com.fish.extendedae_plus_client.mixin.impl.helper.HelperEncodingTerminal;
 import com.fish.extendedae_plus_client.mixin.impl.helper.WTLibHelper;
 import com.fish.extendedae_plus_client.render.screen.ScreenProviderList;
 import com.fish.extendedae_plus_client.util.UtilKeyBuilder;
 import com.glodblock.github.extendedae.common.EAESingletons;
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.protocol.game.ServerboundContainerClickPacket;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.inventory.ClickType;
 import net.minecraft.world.inventory.MenuType;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.ItemUtils;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -36,7 +36,7 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 @Mixin(PatternEncodingTermMenu.class)
-public abstract class MixinEncodingTerminal extends MEStorageMenu implements BridgePlanToEncode {
+public abstract class MixinEncodingTerminal extends MEStorageMenu implements BridgePlanToEncode, HelperEncodingTerminal {
     @Shadow
     public EncodingMode mode;
     @Shadow
@@ -45,7 +45,8 @@ public abstract class MixinEncodingTerminal extends MEStorageMenu implements Bri
     @Unique
     private boolean eaep$flagPatternSelection;
     @Unique
-    private boolean eaep$encodingDelayed;
+    private AutoEncodingStage eaep$autoEncoding = AutoEncodingStage.None;
+
     public MixinEncodingTerminal(MenuType<?> menuType, int id, Inventory ip, ITerminalHost host) {
         super(menuType, id, ip, host);
     }
@@ -56,11 +57,11 @@ public abstract class MixinEncodingTerminal extends MEStorageMenu implements Bri
     @Shadow
     protected abstract ItemStack encodePattern();
 
-    @Inject(method = "encode", at = @At("HEAD"),cancellable = true)
+    @Inject(method = "encode", at = @At("HEAD"), cancellable = true)
     private void onEncode(CallbackInfo ci) {
         if (this.isServerSide()) return;
 
-        if (!extendedAE_Plus_ClientPlus$shouldTigger()) return;
+        if (!EAEPCConfig.encodingTiggerMode.get().shouldTigger() && eaep$autoEncoding != AutoEncodingStage.None) return;
 
         if (CacheProvider.isEmpty()) {
             this.getPlayer().displayClientMessage(
@@ -74,17 +75,17 @@ public abstract class MixinEncodingTerminal extends MEStorageMenu implements Bri
             return;
         }
 
-        var pattern=this.encodePattern();
-        if(pattern==null)return;
+        var pattern = this.encodePattern();
+        if (pattern == null) return;
 
-        if (this.encodedPatternSlot.hasItem()){
-            var is=this.encodedPatternSlot.getItem();
-            var patternDetailsSlot=PatternDetailsHelper.decodePattern(is, this.getPlayer().level());
-            if(patternDetailsSlot!=null)CacheProvider.unmarkPattern(patternDetailsSlot);
+        if (this.encodedPatternSlot.hasItem()) {
+            var is = this.encodedPatternSlot.getItem();
+            var patternDetailsSlot = PatternDetailsHelper.decodePattern(is, this.getPlayer().level());
+            if (patternDetailsSlot != null) CacheProvider.unmarkPattern(patternDetailsSlot);
         }
 
         var patternDetails = PatternDetailsHelper.decodePattern(pattern, this.getPlayer().level());
-        if(patternDetails==null || CacheProvider.hasPattern(patternDetails)){
+        if (patternDetails == null || CacheProvider.hasPattern(patternDetails)) {
             this.getPlayer().displayClientMessage(
                     UtilKeyBuilder.of(UtilKeyBuilder.message)
                             .addStr("pattern")
@@ -97,7 +98,7 @@ public abstract class MixinEncodingTerminal extends MEStorageMenu implements Bri
         }
         this.eaep$flagPatternSelection = true;
         if (!this.encodedPatternSlot.hasItem()) return;
-        if(ItemStack.isSameItemSameComponents(encodedPatternSlot.getItem(),pattern)){
+        if (ItemStack.isSameItemSameComponents(encodedPatternSlot.getItem(), pattern)) {
             this.eaep$makePattern();
             ci.cancel();
         }
@@ -107,7 +108,7 @@ public abstract class MixinEncodingTerminal extends MEStorageMenu implements Bri
     private void onSlotChange(Slot slot, CallbackInfo ci) {
         if (this.isServerSide()) return;
 
-        if(!this.encodedPatternSlot.equals(slot))return;
+        if (!this.encodedPatternSlot.equals(slot)) return;
 
         if (!this.eaep$flagPatternSelection) return;
 
@@ -142,7 +143,8 @@ public abstract class MixinEncodingTerminal extends MEStorageMenu implements Bri
                         eaep$makePatternAuto(existingPattern, group);
                     }
             );
-            screen.switchToScreen(screenProviderList);
+            if (this.eaep$autoEncoding == AutoEncodingStage.None || !screenProviderList.tryAutoEncoding())
+                screen.switchToScreen(screenProviderList);
         }
     }
 
@@ -155,22 +157,23 @@ public abstract class MixinEncodingTerminal extends MEStorageMenu implements Bri
                 containerId, 1, this.encodedPatternSlot.index,
                 0, ClickType.QUICK_MOVE, this.getCarried(), new Int2ObjectOpenHashMap<>()
         ));
-        if(EAEPCConfig.autoUploadMode.get() == AutoUploadMode.AUTO_OPEN)
+        if (EAEPCConfig.autoUploadMode.get() == AutoUploadMode.AUTO_OPEN)
             WTLibHelper.openTerminalCyc(WTLibHelper.PATTERN_ACCESS);
     }
 
-    @Unique
-    private static boolean extendedAE_Plus_ClientPlus$shouldTigger(){
-        return switch (EAEPCConfig.tiggerMode.get()){
-            case ON_SHIFT -> Screen.hasShiftDown();
-            case ON_NOT_SHIFT -> !Screen.hasShiftDown();
-            case ON_CTRL -> Screen.hasControlDown();
-            case ON_NOT_CTRL -> !Screen.hasControlDown();
-        };
+    @Override
+    public void eaep$autoEncoding() {
+        this.eaep$autoEncoding = AutoEncodingStage.Init;
     }
 
+    @Unique
     @Override
-    public void eaep$plan() {
-        this.eaep$encodingDelayed = true;
+    public void eaep$tick() {
+        if (this.eaep$autoEncoding != AutoEncodingStage.None) {
+            this.eaep$autoEncoding = AutoEncodingStage.values()[(eaep$autoEncoding.ordinal() + 1) % AutoEncodingStage.values().length];
+        }
+        if (eaep$autoEncoding == AutoEncodingStage.Encode) {
+            encode();
+        }
     }
 }

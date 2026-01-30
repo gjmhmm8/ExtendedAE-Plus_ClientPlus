@@ -43,7 +43,7 @@ public class MixinCraftingConfirm extends AEBaseMenu {
     @Inject(method = "goBack", at = @At("HEAD"))
     private void onBack(CallbackInfo ci) {
         if (this.isServerSide()) return;
-        if (!Screen.hasControlDown()) return;
+        if (!Screen.hasControlDown()) return;//TODO fix
         if (this.plan == null) return;
 
         this.plan.getEntries().forEach(entry -> {
