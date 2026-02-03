@@ -90,6 +90,10 @@ class LangZH(output: PackOutput) : LanguageProvider(output, ExtendedAEPlusClient
                         INDEPENDENCE - 完全不合并
                         """)
             .buildInto("配方转移合并模式")
+        UtilKeyBuilder.ofDataGen(UtilKeyBuilder.message)
+                            .addStr("pattern")
+                            .addStr("already")
+                            .buildInto("[EAEP] 样板已存在")
 
         UtilKeyBuilder.BuilderDataGen.destroy("zh_cn")
     }
