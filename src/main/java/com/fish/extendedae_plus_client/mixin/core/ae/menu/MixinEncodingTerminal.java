@@ -5,6 +5,10 @@ import appeng.api.implementations.blockentities.PatternContainerGroup;
 import appeng.api.storage.ITerminalHost;
 import appeng.client.gui.me.items.PatternEncodingTermScreen;
 import appeng.core.definitions.AEBlocks;
+import appeng.core.definitions.AEItems;
+import appeng.core.network.serverbound.MEInteractionPacket;
+import appeng.helpers.InventoryAction;
+import appeng.menu.me.common.GridInventoryEntry;
 import appeng.menu.me.common.MEStorageMenu;
 import appeng.menu.me.items.PatternEncodingTermMenu;
 import appeng.menu.slot.RestrictedInputSlot;
@@ -27,6 +31,8 @@ import net.minecraft.world.inventory.ClickType;
 import net.minecraft.world.inventory.MenuType;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.crafting.Ingredient;
+import net.neoforged.neoforge.network.PacketDistributor;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -42,6 +48,9 @@ public abstract class MixinEncodingTerminal extends MEStorageMenu implements Bri
     @Shadow
     @Final
     private RestrictedInputSlot encodedPatternSlot;
+    @Shadow
+    @Final
+    private RestrictedInputSlot blankPatternSlot;
     @Unique
     private boolean eaep$flagPatternSelection;
     @Unique
@@ -61,7 +70,9 @@ public abstract class MixinEncodingTerminal extends MEStorageMenu implements Bri
     private void onEncode(CallbackInfo ci) {
         if (this.isServerSide()) return;
 
-        if (!EAEPCConfig.encodingTiggerMode.get().shouldTigger() && eaep$autoEncoding != AutoEncodingStage.None) return;
+        eaep$fillPattern();
+
+        if (!EAEPCConfig.encodingTiggerMode.get().shouldTigger() && eaep$autoEncoding == AutoEncodingStage.None) return;
 
         if (CacheProvider.isEmpty()) {
             this.getPlayer().displayClientMessage(
@@ -175,5 +186,28 @@ public abstract class MixinEncodingTerminal extends MEStorageMenu implements Bri
         if (eaep$autoEncoding == AutoEncodingStage.Encode) {
             encode();
         }
+    }
+
+    @Unique
+    public void eaep$fillPattern() {
+        if (!getCarried().isEmpty()) return;
+        if (blankPatternSlot.getItem().getCount() > 0) return;
+        var patternIngredient = Ingredient.of(AEItems.BLANK_PATTERN);
+        var player = Minecraft.getInstance().player;
+        if (player == null) return;
+        var clientRepo = getClientRepo();
+        if (clientRepo == null) return;
+        var patternSlotList = clientRepo.getByIngredient(patternIngredient);
+        if (patternSlotList.isEmpty()) return;
+        var patternSlot = patternSlotList.toArray(new GridInventoryEntry[0])[0];
+        PacketDistributor.sendToServer(new MEInteractionPacket(
+                containerId,
+                patternSlot.getSerial(),
+                InventoryAction.PICKUP_OR_SET_DOWN
+        ));
+        player.connection.send(new ServerboundContainerClickPacket(
+                containerId, 1, this.blankPatternSlot.index,
+                0, ClickType.PICKUP, this.getCarried(), new Int2ObjectOpenHashMap<>()
+        ));
     }
 }

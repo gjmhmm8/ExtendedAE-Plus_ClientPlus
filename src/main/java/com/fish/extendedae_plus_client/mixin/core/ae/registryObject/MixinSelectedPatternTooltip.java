@@ -1,7 +1,6 @@
 package com.fish.extendedae_plus_client.mixin.core.ae.registryObject;
 
 import appeng.api.crafting.PatternDetailsHelper;
-import appeng.client.gui.me.patternaccess.PatternContainerRecord;
 import appeng.core.definitions.AEItems;
 import appeng.crafting.pattern.EncodedPatternItem;
 import com.fish.extendedae_plus_client.impl.ConstantCustomData;
@@ -28,19 +27,15 @@ public class MixinSelectedPatternTooltip {
                            List<Component> tooltipComponents,
                            TooltipFlag tooltipFlag,
                            CallbackInfo ci) {
-        var hashGroup = CacheProvider.findProvider(
+        var group = CacheProvider.findProvider(
                 PatternDetailsHelper.decodePattern(stack, Minecraft.getInstance().level));
-        PatternContainerRecord record = null;
-        if (hashGroup != null) {
-            record = CacheProvider.getAvailableProvider(hashGroup);
-        }
-        if (record != null) {
-            tooltipComponents.add(UtilKeyBuilder.of(UtilKeyBuilder.tooltip)
+        if(group==null)return;
+        tooltipComponents.add(UtilKeyBuilder.of(UtilKeyBuilder.tooltip)
                     .item(AEItems.PROCESSING_PATTERN)
                     .addStr("selected_provider")
-                    .args(record.getGroup().name().getString())
+                    .args(group.name().getString())
                     .build());
-        }
+
 
         var pattern = PatternDetailsHelper.decodePattern(stack, Minecraft.getInstance().level);
         if (pattern == null) return;
