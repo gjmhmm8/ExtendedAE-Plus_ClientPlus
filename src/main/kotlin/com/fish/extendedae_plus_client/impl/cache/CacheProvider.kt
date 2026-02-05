@@ -22,11 +22,13 @@ object CacheProvider {
     @JvmStatic
     private val markedCount: MutableMap<PatternContainerGroup, Int> = HashMap()
 
-    private fun incMark(group: PatternContainerGroup) {
+    @JvmStatic
+    fun incMark(group: PatternContainerGroup) {
         markedCount[group] = (markedCount[group] ?: 0) + 1
     }
 
-    private fun decMark(group: PatternContainerGroup) {
+    @JvmStatic
+    fun decMark(group: PatternContainerGroup) {
         val v = (markedCount[group] ?: 0) - 1
         if (v <= 0) markedCount.remove(group) else markedCount[group] = v
     }
@@ -91,7 +93,9 @@ object CacheProvider {
             providerList.getOrPut(container.group) { mutableListOf() }.add(container)
             val bs = providerSlots.getOrPut(container.group) { HashMap() }
                 .getOrPut(container) { BitSet(container.inventory.size()) }
-            container.inventory.forEachIndexed { index, stack -> bs[index] = stack != ItemStack.EMPTY }
+            for (i in 0..<container.inventory.size()){
+                bs[i] = container.inventory.getStackInSlot(i) != ItemStack.EMPTY
+            }
         } else {
             providerList.getOrPut(container.group) { mutableListOf() }
         }

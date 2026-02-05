@@ -13,6 +13,7 @@ dependencies {
     implementation libs.ae2Jei
     implementation libs.ftbTeams
     implementation libs.ftbLibrary
+    implementation libs.eaep
 
     compileOnly libs.appliedFlux
     compileOnly libs.megaCells

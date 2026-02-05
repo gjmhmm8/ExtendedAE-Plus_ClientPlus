@@ -1,11 +1,14 @@
 {
-  "required": true,
+  "required": false,
   "minVersion": "0.8",
   "package": "com.fish.extendedae_plus_client.mixin.core",
   "compatibilityLevel": "JAVA_21",
   "client": [
     "ae.MixinEncoding",
+    "ae.accessor.AccessorAEBaseMenu",
     "ae.accessor.AccessorMEStorageScreen",
+    "ae.accessor.AccessorPAMenu",
+    "ae.accessor.AccessorProvidersListS2CPacket",
     "ae.menu.MixinCraftingConfirm",
     "ae.menu.MixinEncodingTerminal",
     "ae.registryObject.MixinSelectedPatternTooltip",
@@ -15,6 +18,7 @@
     "ae.screen.MixinCraftingCPU",
     "ae.screen.MixinCuttingKnife",
     "ae.screen.MixinEncodingTerminalReproperties",
+    "eaep.ProvidersListS2CPacketMixin",
     "extendedAE.MixinExAccessScreen",
     "extendedAE.accessor.AccessorScreenExPatternTerminal",
     "ftbLibrary.accessor.AccessorScreenBase",
@@ -37,7 +41,6 @@
     "requireAnnotations": true
   },
   "mixins": [
-    "ae.accessor.AccessorAEBaseMenu",
-    "ae.accessor.AccessorPAMenu"
+    "wtlib.CycleTerminalPacketMixin"
   ]
 }

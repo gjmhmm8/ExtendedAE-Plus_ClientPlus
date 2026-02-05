@@ -6,6 +6,8 @@ import appeng.api.implementations.blockentities.PatternContainerGroup;
 import appeng.client.gui.AEBaseScreen;
 import appeng.core.network.serverbound.InventoryActionPacket;
 import appeng.helpers.InventoryAction;
+import com.extendedae_plus.network.ProvidersListS2CPacket;
+import com.extendedae_plus.network.UploadEncodedPatternToProviderC2SPacket;
 import com.fish.extendedae_plus_client.config.EAEPCConfig;
 import com.fish.extendedae_plus_client.config.enums.AutoUploadMode;
 import com.fish.extendedae_plus_client.impl.cache.CacheProvider;
@@ -15,7 +17,9 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.network.protocol.game.ServerboundContainerClickPacket;
 import net.minecraft.world.inventory.ClickType;
 import net.minecraft.world.item.ItemStack;
+import net.neoforged.fml.ModList;
 import net.neoforged.neoforge.network.PacketDistributor;
+import com.extendedae_plus.network.RequestProvidersListC2SPacket;
 
 import java.util.*;
 
@@ -28,18 +32,24 @@ public final class HelperPatternMoving {
     private final Map<IPatternDetails, PatternContainerGroup> perSuccess=new HashMap<>();
     private int delay = EAEPCConfig.autoTransferDelay.getAsInt();
     private boolean perCompleted=false;
+    public static IPatternDetails pattern=null;
+    public static PatternContainerGroup uploadedGroup=null;
+    public static HelperPatternMoving INSTANCE=null;
 
     public HelperPatternMoving(AEBaseScreen<?> host) {
         this.host = host;
         this.patterns = new ArrayList<>();
         this.cacheUsedSlots = new HashMap<>();
+        INSTANCE=this;
     }
 
     public void onClose() {
+        CacheProvider.clearPattern();
         this.cacheUsedSlots.clear();
         for(var i:perSuccess.entrySet()){
             CacheProvider.markPattern(i.getKey(),i.getValue());
         }
+        INSTANCE=null;
     }
 
     public boolean isEmpty() {
@@ -55,7 +65,7 @@ public final class HelperPatternMoving {
             WTLibHelper.goBackCyc();
         }
         if (perCompleted) return;
-        if (EAEPCConfig.autoUploadMode.get() == AutoUploadMode.NONE) {
+        if (EAEPCConfig.autoUploadMode.get() != AutoUploadMode.WHEN_OPEN && EAEPCConfig.autoUploadMode.get() != AutoUploadMode.AUTO_OPEN) {
             perCompleted = true;
             return;
         }
@@ -81,7 +91,6 @@ public final class HelperPatternMoving {
 
         if (this.patterns.isEmpty()) {
             this.perCompleted = true;
-            CacheProvider.clearPattern();
         }
     }
 
@@ -146,5 +155,28 @@ public final class HelperPatternMoving {
         cacheUsedSlots.put(providerId, targetSlot + 1);
         CacheProvider.setSlots(providerInfo, slot, true);
         return true;
+    }
+
+    public static void eaepUploadPatternByName(PatternContainerGroup group,IPatternDetails pattern){
+        if(!ModList.get().isLoaded("extendedae_plus"))return;
+        eaepUploadPatternByNameSafe(group);
+        HelperPatternMoving.pattern =pattern;
+    }
+
+    private static void eaepUploadPatternByNameSafe(PatternContainerGroup group){
+        PacketDistributor.sendToServer(RequestProvidersListC2SPacket.INSTANCE);
+        uploadedGroup=group;
+    }
+
+    public static void eaepPacketHandler(ProvidersListS2CPacket tmp){
+        HelperProvidersListS2CPacket packet=(HelperProvidersListS2CPacket) tmp;
+        for(var i=0;i<packet.getIds().size();++i){
+            if(packet.getNames().get(i).equals(uploadedGroup.name().getString())){
+                PacketDistributor.sendToServer(new UploadEncodedPatternToProviderC2SPacket(packet.getIds().get(i)));
+                CacheProvider.unmarkPattern(pattern);
+                CacheProvider.markPatternAlready(pattern);
+                CacheProvider.incMark(uploadedGroup);
+            }
+        }
     }
 }

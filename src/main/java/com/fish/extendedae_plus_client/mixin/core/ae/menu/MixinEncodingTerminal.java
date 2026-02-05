@@ -19,6 +19,7 @@ import com.fish.extendedae_plus_client.impl.cache.CacheProvider;
 import com.fish.extendedae_plus_client.mixin.impl.bridge.BridgePlanToEncode;
 import com.fish.extendedae_plus_client.mixin.impl.helper.AutoEncodingStage;
 import com.fish.extendedae_plus_client.mixin.impl.helper.HelperEncodingTerminal;
+import com.fish.extendedae_plus_client.mixin.impl.helper.HelperPatternMoving;
 import com.fish.extendedae_plus_client.mixin.impl.helper.WTLibHelper;
 import com.fish.extendedae_plus_client.render.screen.ScreenProviderList;
 import com.fish.extendedae_plus_client.util.UtilKeyBuilder;
@@ -26,12 +27,14 @@ import com.glodblock.github.extendedae.common.EAESingletons;
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.protocol.game.ServerboundContainerClickPacket;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.inventory.ClickType;
 import net.minecraft.world.inventory.MenuType;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.crafting.Ingredient;
+import net.neoforged.fml.ModList;
 import net.neoforged.neoforge.network.PacketDistributor;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
@@ -138,12 +141,20 @@ public abstract class MixinEncodingTerminal extends MEStorageMenu implements Bri
         if (!EncodingMode.PROCESSING.equals(this.mode)) {
             for (var group : CacheProvider.getGroups()) {//TODO pattern slots
                 var icon = group.icon();
-                if (icon == null
-                        || !(icon.is(AEBlocks.MOLECULAR_ASSEMBLER)
-                        || icon.is(EAESingletons.EX_ASSEMBLER)
-                        || icon.is(EAESingletons.ASSEMBLER_MATRIX_PATTERN)))
-                    continue;
-                eaep$makePatternAuto(existingPattern, group);
+                if(icon==null)continue;
+                switch (icon.getId().toString()){
+                    case "extendedae_plus:assembler_matrix_pattern_plus":
+                    case "extendedae:assembler_matrix_pattern":
+                    case "ae2:molecular_assembler":
+                    case "extendedae:ex_molecular_assembler":
+                        if(CacheProvider.getAvailableSlots(group)>0){
+                            eaep$makePatternAuto(existingPattern, group);
+                            break;
+                        }
+                    default:
+                        continue;
+                }
+                break;
             }
         } else {
             if (!(Minecraft.getInstance().screen instanceof PatternEncodingTermScreen<?> screen)) return;
@@ -164,12 +175,20 @@ public abstract class MixinEncodingTerminal extends MEStorageMenu implements Bri
         var patternDetails = PatternDetailsHelper.decodePattern(pattern, this.getPlayer().level());
         if (patternDetails == null) return;
         CacheProvider.markPattern(patternDetails, group);
-        Minecraft.getInstance().player.connection.send(new ServerboundContainerClickPacket(
-                containerId, 1, this.encodedPatternSlot.index,
-                0, ClickType.QUICK_MOVE, this.getCarried(), new Int2ObjectOpenHashMap<>()
-        ));
-        if (EAEPCConfig.autoUploadMode.get() == AutoUploadMode.AUTO_OPEN)
-            WTLibHelper.openTerminalCyc(WTLibHelper.PATTERN_ACCESS);
+        if (EAEPCConfig.autoUploadMode.get() == AutoUploadMode.AUTO_OPEN || EAEPCConfig.autoUploadMode.get() == AutoUploadMode.WHEN_OPEN) {
+            Minecraft.getInstance().player.connection.send(new ServerboundContainerClickPacket(
+                    containerId, 1, this.encodedPatternSlot.index,
+                    0, ClickType.QUICK_MOVE, this.getCarried(), new Int2ObjectOpenHashMap<>()
+            ));
+            if (EAEPCConfig.autoUploadMode.get() == AutoUploadMode.AUTO_OPEN){
+                if(!WTLibHelper.openTerminalCyc(WTLibHelper.PATTERN_ACCESS))
+                    WTLibHelper.openTerminalCyc(WTLibHelper.EX_PATTERN_ACCESS);
+            }
+        }else if(EAEPCConfig.autoUploadMode.get() == AutoUploadMode.EAEP_BY_NAME && ModList.get().isLoaded("extendedae_plus")){
+            HelperPatternMoving.eaepUploadPatternByName(group,patternDetails);
+        }
+
+
     }
 
     @Override
