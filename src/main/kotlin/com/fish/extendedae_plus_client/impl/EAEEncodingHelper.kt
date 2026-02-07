@@ -22,6 +22,7 @@ import net.minecraft.core.registries.BuiltInRegistries
 import net.minecraft.network.chat.Component
 import net.minecraft.network.chat.contents.PlainTextContents
 import net.minecraft.network.chat.contents.TranslatableContents
+import net.minecraft.world.item.crafting.Recipe
 import net.minecraft.world.item.crafting.RecipeHolder
 import net.neoforged.fml.loading.FMLPaths
 import java.nio.file.Files
@@ -113,31 +114,30 @@ object EAEEncodingHelper {
         recipeKeywords[priority] = group
     }
 
-    /** @param recipe (J)EmiRecipe或RecipeHolder
+    /** @param recipeBase (J)EmiRecipe或RecipeHolder
      */
     @JvmStatic
-    fun tryCollectKeywords(recipe: Any?) {
+    fun tryCollectKeywords(recipeBase: Any?) {
         recipeKeywords.clear()
         keywords.clear()
-        if (recipe == null) return
+        if (recipeBase == null) return
         val keys = HashMap<Int, String>()
-
         if (ContextModLoaded.emi.isLoaded) {//TODO emi Use id first
             var workstations: MutableList<EmiIngredient> = ArrayList()
 
-            if (recipe is JemiRecipe<*>) {
-                workstations = EmiApi.getRecipeManager().getWorkstations(recipe.recipeCategory)
-                keys[0] = recipe.category.recipeType.uid.toString()
-                keys[3] = recipe.category.title.string
-                if (recipe.originalId != null) {
-                    keys[9] = recipe.originalId.path.split("/")[0]
+            if (recipeBase is JemiRecipe<*>) {
+                workstations = EmiApi.getRecipeManager().getWorkstations(recipeBase.recipeCategory)
+                keys[0] = recipeBase.category.recipeType.uid.toString()
+                keys[3] = recipeBase.category.title.string
+                if (recipeBase.originalId != null) {
+                    keys[9] = recipeBase.originalId.path.split("/")[0]
                 }
-            } else if (recipe is EmiRecipe) {
-                workstations = EmiApi.getRecipeManager().getWorkstations(recipe.category)
-                keys[0] = recipe.category.id.toString()
-                keys[3] = recipe.category.name.string
-                if (recipe.id != null) {
-                    keys[9] = recipe.id!!.path.split("/")[0]
+            } else if (recipeBase is EmiRecipe) {
+                workstations = EmiApi.getRecipeManager().getWorkstations(recipeBase.category)
+                keys[0] = recipeBase.category.id.toString()
+                keys[3] = recipeBase.category.name.string
+                if (recipeBase.id != null) {
+                    keys[9] = recipeBase.id!!.path.split("/")[0]
                 }
             }
 
@@ -161,10 +161,13 @@ object EAEEncodingHelper {
             }
         }
 
-        if (recipe is RecipeHolder<*>) {
-            val key = BuiltInRegistries.RECIPE_TYPE.getKey(recipe.value.type)
+        if (recipeBase is RecipeHolder<*>) {
+            val key = BuiltInRegistries.RECIPE_TYPE.getKey(recipeBase.value.type)
             keys[0] = key.toString()
-            keys[1000] = recipe.id().path.split("/")[0]
+            keys[1000] = recipeBase.id().path.split("/")[0]
+        } else if(recipeBase is Recipe<*>){
+            val key = BuiltInRegistries.RECIPE_TYPE.getKey(recipeBase.type)
+            keys[0] = key.toString()
         }
 
         keys.entries.stream()

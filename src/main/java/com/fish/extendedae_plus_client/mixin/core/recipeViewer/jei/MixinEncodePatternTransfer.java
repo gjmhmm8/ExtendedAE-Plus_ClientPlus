@@ -4,8 +4,10 @@ import appeng.integration.modules.itemlists.EncodingHelper;
 import com.fish.extendedae_plus_client.impl.EAEEncodingHelper;
 import mezz.jei.api.gui.ingredient.IRecipeSlotsView;
 import mezz.jei.api.recipe.transfer.IRecipeTransferError;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.AbstractContainerMenu;
+import net.minecraft.world.item.crafting.Recipe;
 import net.minecraft.world.item.crafting.RecipeHolder;
 import net.neoforged.fml.ModList;
 import org.spongepowered.asm.mixin.Mixin;
@@ -27,11 +29,20 @@ public class MixinEncodePatternTransfer {
         if (!doTransfer) return;
         if (ModList.get().isLoaded("emi")) return;
         EAEEncodingHelper.tiggerAutoEncoding();
-        if (!(recipeBase instanceof RecipeHolder<?> holder)
-                || EncodingHelper.isSupportedCraftingRecipe(holder.value()))
+        if (recipeBase instanceof RecipeHolder<?> holder
+            && EncodingHelper.isSupportedCraftingRecipe(holder.value()))
             return;
+        switch (recipeBase){
+            case RecipeHolder<?> holder:
+                EAEEncodingHelper.tryCollectKeywords(holder);
+                break;
+            case Recipe<?> recipe:
+                EAEEncodingHelper.tryCollectKeywords(recipe);
+                break;
+            default:
+                break;
+        }
 
-        EAEEncodingHelper.tryCollectKeywords(holder);
         // Jei的这神必workstation真的能搞到吗?????
     }
 }

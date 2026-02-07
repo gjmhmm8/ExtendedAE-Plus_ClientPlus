@@ -11,6 +11,7 @@ import com.extendedae_plus.network.UploadEncodedPatternToProviderC2SPacket;
 import com.fish.extendedae_plus_client.config.EAEPCConfig;
 import com.fish.extendedae_plus_client.config.enums.AutoUploadMode;
 import com.fish.extendedae_plus_client.impl.cache.CacheProvider;
+import com.fish.extendedae_plus_client.util.ComponentLocaleConverter;
 import com.mojang.datafixers.util.Pair;
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
 import net.minecraft.client.Minecraft;
@@ -170,12 +171,28 @@ public final class HelperPatternMoving {
 
     public static void eaepPacketHandler(ProvidersListS2CPacket tmp){
         HelperProvidersListS2CPacket packet=(HelperProvidersListS2CPacket) tmp;
+        if (uploadedGroup == null || pattern == null) return;
+
+        final String localName = ComponentLocaleConverter.normalizeForCompare(uploadedGroup.name().getString());
+        // 服务端回退模式大概率用 en_us 语言表生成 displayName（你贴的代码就是 getProviderDisplayName(c) -> String）
+        final String enUsName = ComponentLocaleConverter.normalizeForCompare(
+                ComponentLocaleConverter.toLocaleString(uploadedGroup.name(), "en_us")
+        );
+
         for(var i=0;i<packet.getIds().size();++i){
-            if(packet.getNames().get(i).equals(uploadedGroup.name().getString())){
+            String serverName = ComponentLocaleConverter.normalizeForCompare(packet.getNames().get(i));
+            if((!enUsName.isEmpty() && serverName.equals(enUsName))
+                    || (!localName.isEmpty() && serverName.equals(localName))){
+                // 关键：直接回传服务端给的 id。回退模式下该 id 已经是 encodedId = -1 - index（且 index 基于原始列表）
                 PacketDistributor.sendToServer(new UploadEncodedPatternToProviderC2SPacket(packet.getIds().get(i)));
                 CacheProvider.unmarkPattern(pattern);
                 CacheProvider.markPatternAlready(pattern);
                 CacheProvider.incMark(uploadedGroup);
+
+                // 完成后清理标记，避免持续拦截 ProvidersListS2CPacket
+                pattern = null;
+                uploadedGroup = null;
+                break;
             }
         }
     }
