@@ -2,20 +2,21 @@ package com.fish.extendedae_plus_client.util;
 
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import com.google.gson.stream.JsonReader;
+import com.mojang.logging.LogUtils;
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.contents.PlainTextContents;
 import net.minecraft.network.chat.contents.TranslatableContents;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.packs.resources.Resource;
+import net.minecraft.server.packs.resources.ResourceManager;
 
-import java.io.InputStream;
-import java.io.InputStreamReader;
+import java.io.IOException;
 import java.io.Reader;
-import java.lang.reflect.Method;
-import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -26,12 +27,14 @@ import java.util.regex.Pattern;
  * 这用于在客户端不切换 UI 语言的前提下，复刻服务端常用语言（通常 en_us）生成的 displayName，从而与 S2C 列表字符串稳定对齐。
  */
 public final class ComponentLocaleConverter {
-    private ComponentLocaleConverter() {}
-
     private static final Pattern FORMAT_PATTERN = Pattern.compile("%(?:(\\d+)\\$)?([A-Za-z%]|$)");
-
-    /** cacheKey = namespace|locale -> (translationKey -> value) */
+    /**
+     * cacheKey = locale -> (translationKey -> value)
+     */
     private static final Map<String, Map<String, String>> LANG_CACHE = new HashMap<>();
+
+    private ComponentLocaleConverter() {
+    }
 
     public static String toLocaleString(Component component, String locale) {
         if (component == null) return "";
@@ -39,34 +42,34 @@ public final class ComponentLocaleConverter {
 
         var contents = component.getContents();
         if (contents instanceof TranslatableContents tc) {
-             return renderHandledWithSiblings(component, renderTranslatable(tc, locale), locale);
+            return renderHandledWithSiblings(component, renderTranslatable(tc, locale), locale);
         }
-         if (contents instanceof PlainTextContents pt) {
-             return renderHandledWithSiblings(component, pt.text(), locale);
-         }
+        if (contents instanceof PlainTextContents pt) {
+            return renderHandledWithSiblings(component, pt.text(), locale);
+        }
 
-         // 其他 contents：遵循用户要求，直接使用原生 getString/visit 的结果（并由原生逻辑处理 siblings）
-         return component.getString();
+        // 其他 contents：遵循用户要求，直接使用原生 getString/visit 的结果（并由原生逻辑处理 siblings）
+        return component.getString();
     }
 
-     /**
-      * MutableComponent 可能会在 siblings 中追加更多 Component（其中也可能包含 TranslatableContents）。
-      * 对于我们“已接管”的 contents（Translatable/PlainText），这里手动拼接 siblings，确保嵌套翻译也按指定 locale 解析。
-      */
-     private static String renderHandledWithSiblings(Component component, String base, String locale) {
-         StringBuilder out = new StringBuilder(base == null ? "" : base);
-         try {
-             var siblings = component.getSiblings();
-             if (siblings != null && !siblings.isEmpty()) {
-                 for (Component s : siblings) {
-                     out.append(toLocaleString(s, locale));
-                 }
-             }
-         } catch (Throwable ignored) {
-             // 极端情况下接口/实现差异，直接返回 base
-         }
-         return out.toString();
-     }
+    /**
+     * MutableComponent 可能会在 siblings 中追加更多 Component（其中也可能包含 TranslatableContents）。
+     * 对于我们“已接管”的 contents（Translatable/PlainText），这里手动拼接 siblings，确保嵌套翻译也按指定 locale 解析。
+     */
+    private static String renderHandledWithSiblings(Component component, String base, String locale) {
+        StringBuilder out = new StringBuilder(base == null ? "" : base);
+        try {
+            var siblings = component.getSiblings();
+            if (!siblings.isEmpty()) {
+                for (Component s : siblings) {
+                    out.append(toLocaleString(s, locale));
+                }
+            }
+        } catch (Throwable ignored) {
+            // 极端情况下接口/实现差异，直接返回 base
+        }
+        return out.toString();
+    }
 
     public static String normalizeForCompare(String s) {
         if (s == null) return "";
@@ -127,81 +130,60 @@ public final class ComponentLocaleConverter {
 
     private static String translateKey(String key, String fallback, String locale) {
         if (key == null || key.isEmpty()) return fallback;
-        String namespace = guessNamespaceFromTranslationKey(key);
-        String cacheKey = namespace + "|" + locale;
-        Map<String, String> map = LANG_CACHE.get(cacheKey);
+        Map<String, String> map = LANG_CACHE.get(locale);
         if (map == null) {
-            map = loadLangMap(namespace, locale);
-            LANG_CACHE.put(cacheKey, map);
+            map = loadLangMap(locale);
+            LANG_CACHE.put(locale, map);
         }
         return map.getOrDefault(key, fallback);
     }
 
-    private static String guessNamespaceFromTranslationKey(String key) {
-        // 经验规则：绝大多数 translation key 形如 block.<namespace>.<path> / item.<namespace>.<path> / gui.<namespace>....
-        // 若无法解析，则回退 minecraft
-        String[] parts = key.split("\\.");
-        if (parts.length >= 2 && !parts[1].isEmpty()) return parts[1];
-        return "minecraft";
-    }
-
-    private static Map<String, String> loadLangMap(String namespace, String locale) {
+    private static Map<String, String> loadLangMap(String locale) {
         Map<String, String> map = new HashMap<>();
         try {
-            Object rm = Minecraft.getInstance().getResourceManager();
-            Object res = tryGetResource(rm, ResourceLocation.fromNamespaceAndPath(namespace, "lang/" + locale + ".json"));
-            if (res == null) return map;
+            ResourceManager rm = Minecraft.getInstance().getResourceManager();
+            // 扫描所有命名空间下的 lang/<locale>.json 并合并键值（namespace 参数可能不准确，所以不使用它）
+            Map<ResourceLocation, List<Resource>> resources = rm.listResourceStacks(
+                    "lang",
+                    rl -> rl != null && ("lang/" + locale + ".json").equals(rl.getPath())
+            );
 
-            try (Reader reader = openResourceAsReader(res)) {
-                if (reader == null) return map;
-                JsonObject obj = JsonParser.parseReader(reader).getAsJsonObject();
-                for (var e : obj.entrySet()) {
-                    if (e.getValue().isJsonPrimitive()) {
-                        map.put(e.getKey(), e.getValue().getAsString());
+            for (var entry : resources.entrySet()) {
+                List<Resource> resList = entry.getValue();
+                for (var res : resList) {
+                    try (Reader reader = openResourceAsReader(res)) {
+                        if (reader == null) continue;
+                        JsonReader jsonReader = new JsonReader(reader);
+                        jsonReader.setLenient(true); // 兼容带注释/非严格 JSON 的语言文件
+                        JsonObject obj = JsonParser.parseReader(jsonReader).getAsJsonObject();
+                        for (var e : obj.entrySet()) {
+                            if (e.getValue().isJsonPrimitive() && e.getValue().getAsJsonPrimitive().isString()) {
+                                map.put(e.getKey(), e.getValue().getAsString());
+                            }
+                        }
+                    } catch (Throwable exp) {
+                        LogUtils.getLogger().error("EAEP CLC Err 1",exp);
+                        // 单个资源失败不影响其他命名空间
                     }
                 }
             }
-        } catch (Throwable ignored) {
+        } catch (Throwable exp) {
+            LogUtils.getLogger().error("EAEP CLC Err 2",exp);
             // 拿不到语言表就返回空 map，由调用方继续走原生 getString 兜底
         }
         return map;
     }
 
     /**
-     * 兼容不同版本 ResourceManager#getResource 签名：
-     * - Optional<Resource>
-     * - Resource
-     */
-    private static Object tryGetResource(Object resourceManager, ResourceLocation rl) throws Exception {
-        if (resourceManager == null) return null;
-        Method m = resourceManager.getClass().getMethod("getResource", ResourceLocation.class);
-        Object ret = m.invoke(resourceManager, rl);
-        if (ret instanceof Optional<?> opt) {
-            return opt.orElse(null);
-        }
-        return ret;
-    }
-
-    /**
      * 兼容不同版本 Resource 的读取方式：优先 openAsReader()，否则 open() -> InputStreamReader。
      */
-    private static Reader openResourceAsReader(Object resource) {
+    private static Reader openResourceAsReader(Resource resource) {
         if (resource == null) return null;
-        try {
-            Method openAsReader = resource.getClass().getMethod("openAsReader");
-            Object r = openAsReader.invoke(resource);
-            if (r instanceof Reader reader) return reader;
-        } catch (Throwable ignored) {
+        try{
+            return resource.openAsReader();
+        } catch (IOException e) {
+            return null;
         }
-        try {
-            Method open = resource.getClass().getMethod("open");
-            Object is = open.invoke(resource);
-            if (is instanceof InputStream in) {
-                return new InputStreamReader(in, StandardCharsets.UTF_8);
-            }
-        } catch (Throwable ignored) {
-        }
-        return null;
     }
 }
 

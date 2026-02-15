@@ -32,7 +32,8 @@
     "recipeViewer.MixinEncodingHelper",
     "recipeViewer.emi.MixinEncodePatternTransfer",
     "recipeViewer.jei.MixinEncodePatternTransfer",
-    "recipeViewer.jei.accessor.AccessorBookmarkOverlay"
+    "recipeViewer.jei.accessor.AccessorBookmarkOverlay",
+    "wtlib.CycleTerminalPacketMixin"
   ],
   "injectors": {
     "defaultRequire": 1
@@ -41,6 +42,6 @@
     "requireAnnotations": true
   },
   "mixins": [
-    "wtlib.CycleTerminalPacketMixin"
+
   ]
 }

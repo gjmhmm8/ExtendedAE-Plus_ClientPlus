@@ -7,7 +7,7 @@ dependencies {
     implementation libs.advancedAE
     implementation libs.ae2wt
     implementation libs.jade
-    implementation libs.jech
+    compileOnly libs.jech
     implementation libs.emi
     implementation libs.jei
     implementation libs.ae2Jei
@@ -30,7 +30,7 @@ dependencies {
     runtimeOnly libs.appliedMekanistics
     runtimeOnly libs.curios
     runtimeOnly libs.architectury
-    runtimeOnly libs.modernUI
+//    runtimeOnly libs.modernUI
 }
 
 repositories {

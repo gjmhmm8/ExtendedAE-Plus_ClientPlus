@@ -163,11 +163,13 @@ object EAEEncodingHelper {
 
         if (recipeBase is RecipeHolder<*>) {
             val key = BuiltInRegistries.RECIPE_TYPE.getKey(recipeBase.value.type)
-            keys[0] = key.toString()
+            if(key!=null) keys[0] = key.toString()
+            else keys[0]=recipeBase.value.type.toString()
             keys[1000] = recipeBase.id().path.split("/")[0]
         } else if(recipeBase is Recipe<*>){
             val key = BuiltInRegistries.RECIPE_TYPE.getKey(recipeBase.type)
-            keys[0] = key.toString()
+            if(key!=null) keys[0] = key.toString()
+            else keys[0]=recipeBase.type.toString()
         }
 
         keys.entries.stream()
