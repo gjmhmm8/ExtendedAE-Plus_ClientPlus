@@ -13,12 +13,10 @@ import com.extendedae_plus.network.provider.RequestProvidersListC2SPacket;
 import com.fish.extendedae_plus_client.config.EAEPCConfig;
 import com.fish.extendedae_plus_client.config.enums.AutoUploadMode;
 import com.fish.extendedae_plus_client.impl.cache.CacheProvider;
-import com.fish.extendedae_plus_client.util.ComponentLocaleConverter;
 import com.mojang.datafixers.util.Pair;
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
-import net.minecraft.network.chat.contents.TranslatableContents;
 import net.minecraft.network.protocol.game.ServerboundContainerClickPacket;
 import net.minecraft.world.inventory.ClickType;
 import net.minecraft.world.item.ItemStack;
@@ -176,11 +174,11 @@ public final class HelperPatternMoving {
         if (uploadedGroup == null || pattern == null) return;
 
         var packet = (HelperProvidersListS2CPacket) msg;
-        final String localName = ComponentLocaleConverter.normalizeForCompare(uploadedGroup.name().getString());
+        var localName = uploadedGroup.name();
 
         for (int i = 0; i < packet.getIds().size(); ++i) {
             var serverName=Component.Serializer.fromJson(packet.getNames().get(i));
-            if (serverName != null && !localName.isEmpty() && serverName.getString().equals(localName)) {
+            if (serverName != null && serverName.equals(localName)) {
                 ModNetwork.CHANNEL.sendToServer(new UploadEncodedPatternToProviderC2SPacket(packet.getIds().get(i)));
                 CacheProvider.unmarkPattern(pattern);
                 CacheProvider.markPatternAlready(pattern);
