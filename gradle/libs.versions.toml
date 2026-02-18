@@ -1,0 +1,51 @@
+[versions]
+ae2 = "7148487"
+guideME = "20.1.14"
+glodium = "5226922"
+extendedAE = "7472662"
+ae2wt = "7251206"
+advancedAE = "7159779"
+curios = "6418456"
+appliedFlux = "7072853"
+megaCells = "6175008"
+jade = "6855440"
+mekanism = "1.20.1-10.4.16.80"
+appliedMekanistics = "7244744"
+emi = "1.1.22+1.20.1"
+jei = "15.20.0.129"
+rei = "12.1.785"
+geckolib = "7553267"
+ftbLibrary = "2001.2.12"
+ftbTeams = "2001.3.2"
+architectury = "5137938"
+jech = "7424367"
+modernUI = "6956345"
+eaep = "7327714"
+kotlinForForge = "4.12.0"
+clothConfig = "11.1.136"
+
+[libraries]
+ae2 = { group = "curse.maven", name = "ae2-223794", version.ref = "ae2" }
+guideME = { group = "org.appliedenergistics", name = "guideme", version.ref = "guideME" }
+glodium = { group = "curse.maven", name = "glodium-957920", version.ref = "glodium" }
+extendedAE = { group = "curse.maven", name = "ex-pattern-provider-892005", version.ref = "extendedAE" }
+ae2wt = { group = "curse.maven", name = "ae2wtlib-459929", version.ref = "ae2wt" }
+advancedAE = { group = "curse.maven", name = "advancedae-1084104", version.ref = "advancedAE" }
+curios = { group = "curse.maven", name = "curios-309927", version.ref = "curios" }
+appliedFlux = { group = "curse.maven", name = "applied-flux-965012", version.ref = "appliedFlux" }
+megaCells = { group = "curse.maven", name = "mega-cells-622112", version.ref = "megaCells" }
+jade = { group = "curse.maven", name = "jade-324717", version.ref = "jade" }
+mekanism = { group = "mekanism", name = "Mekanism", version.ref = "mekanism" }
+appliedMekanistics = { group = "curse.maven", name = "applied-mekanistics-574300", version.ref = "appliedMekanistics" }
+jech = { group = "curse.maven", name = "just-enough-characters-250702", version.ref = "jech" }
+emi = { group = "dev.emi", name = "emi-forge", version.ref = "emi" }
+rei = { group = "me.shedaniel", name = "RoughlyEnoughItems-forge", version.ref = "rei" }
+jei = { group = "mezz.jei", name = "jei-1.20.1-forge", version.ref = "jei" }
+geckolib = { group = "curse.maven", name = "geckolib-388172", version.ref = "geckolib" }
+ftbLibrary = { group = "dev.ftb.mods", name = "ftb-library-forge", version.ref = "ftbLibrary" }
+ftbTeams = { group = "dev.ftb.mods", name = "ftb-teams-forge", version.ref = "ftbTeams" }
+architectury = { group = "curse.maven", name = "architectury-api-419699", version.ref = "architectury" }
+modernUI = { group = "curse.maven", name = "modern-ui-352491", version.ref = "modernUI" }
+eaep = { group = "curse.maven", name = "eaep-1337639", version.ref = "eaep" }
+kotlinForForge = { group = "thedarkcolour", name = "kotlinforforge", version.ref = "kotlinForForge" }
+clothConfig = { group = "me.shedaniel.cloth", name = "cloth-config-forge", version.ref = "clothConfig" }

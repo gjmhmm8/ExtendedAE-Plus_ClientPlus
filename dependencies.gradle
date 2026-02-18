@@ -1,0 +1,66 @@
+dependencies {
+    implementation fg.deobf(libs.kotlinForForge.get())
+    implementation fg.deobf(libs.ae2.get())
+    implementation fg.deobf(libs.guideME.get())
+    implementation fg.deobf(libs.glodium.get())
+    implementation fg.deobf(libs.extendedAE.get())
+    implementation fg.deobf(libs.eaep.get())
+    implementation fg.deobf(libs.advancedAE.get())
+    implementation fg.deobf(libs.ae2wt.get())
+    implementation fg.deobf(libs.jade.get())
+    implementation fg.deobf(libs.jech.get())
+    implementation fg.deobf(libs.emi.get())
+    implementation fg.deobf(libs.jei.get())
+    implementation fg.deobf(libs.ftbTeams.get())
+    implementation fg.deobf(libs.ftbLibrary.get())
+
+    compileOnly fg.deobf(libs.appliedFlux.get())
+    compileOnly fg.deobf(libs.megaCells.get())
+    compileOnly fg.deobf(libs.mekanism.get())
+    compileOnly fg.deobf(libs.appliedMekanistics.get())
+    compileOnly fg.deobf(libs.curios.get())
+    compileOnly fg.deobf(libs.rei.get())
+    compileOnly fg.deobf(libs.clothConfig.get())
+
+    runtimeOnly fg.deobf(libs.geckolib.get())
+    runtimeOnly fg.deobf(libs.appliedFlux.get())
+    runtimeOnly fg.deobf(libs.megaCells.get())
+    runtimeOnly fg.deobf(libs.mekanism.get())
+    runtimeOnly fg.deobf(libs.appliedMekanistics.get())
+    runtimeOnly fg.deobf(libs.curios.get())
+    runtimeOnly fg.deobf(libs.architectury.get())
+    runtimeOnly fg.deobf(libs.clothConfig.get())
+}
+
+repositories {
+    maven {
+        name = "TerraformersMC"
+        url = uri("https://maven.terraformersmc.com/")
+    }
+    maven {
+        name = "CurseMaven"
+        url = uri("https://www.cursemaven.com")
+    }
+    maven {
+        name = "ModMaven"
+        url = uri("https://modmaven.dev/")
+    }
+    maven {
+        name = "FTB Maven"
+        url = uri("https://maven.ftb.dev/releases")
+    }
+    maven {
+        name = "Kotlin for Forge"
+        url = uri("https://thedarkcolour.github.io/KotlinForForge/")
+    }
+    maven {
+        url = uri("https://maven.shedaniel.me/")
+    }
+    maven {
+        url = uri("https://maven.architectury.dev/")
+    }
+    maven {
+        url = uri("https://maven.latvian.dev/releases/")
+    }
+    mavenCentral()
+}

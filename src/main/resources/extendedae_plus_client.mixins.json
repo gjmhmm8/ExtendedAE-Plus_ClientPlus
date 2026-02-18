@@ -1,0 +1,46 @@
+{
+  "required": false,
+  "minVersion": "0.8",
+  "package": "com.fish.extendedae_plus_client.mixin.core",
+  "compatibilityLevel": "JAVA_8",
+  "refmap": "extendedae_plus_client.refmap.json",
+  "mixins": [
+  ],
+  "client": [
+    "ae.MixinEncoding",
+    "ae.accessor.AccessorAEBaseScreen",
+    "ae.accessor.AccessorAEBaseMenu",
+    "ae.accessor.AccessorMEStorageScreen",
+    "ae.accessor.AccessorProvidersListS2CPacket",
+    "ae.accessor.AccessorPAMenu",
+    "ae.menu.MixinCraftingConfirm",
+    "ae.menu.MixinEncodingTerminal",
+    "ae.registryObject.MixinSelectedPatternTooltip",
+    "ae.registryObject.QuartzCuttingKnifeItemMixin",
+    "ae.screen.MixinAccessTerminal",
+    "ae.screen.MixinCraftingCPU",
+    "ae.screen.MixinCuttingKnife",
+    "ae.screen.MixinEncodingTerminalReproperties",
+    "eaep.ProvidersListS2CPacketMixin",
+    "extendedAE.MixinExAccessScreen",
+    "extendedAE.accessor.AccessorScreenExPatternTerminal",
+    "ftbLibrary.accessor.AccessorScreenBase",
+    "ftbLibrary.accessor.AccessorScreenNBTEditor",
+    "ftbLibrary.accessor.AccessorScreenNBTEditor$AccessorButtonNBTMap",
+    "helperOverriding.HelperAccessScreen",
+    "helperOverriding.HelperCellWorkbenchScreen",
+    "helperOverriding.HelperCuttingKnifeScreen",
+    "helperOverriding.HelperExAccessScreen",
+    "minecraft.MixinButton",
+    "recipeViewer.MixinEncodingHelper",
+    "recipeViewer.emi.MixinEncodePatternTransfer",
+    "recipeViewer.jei.MixinEncodePatternTransfer",
+    "recipeViewer.jei.accessor.AccessorBookmarkOverlay"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  },
+  "overwrites": {
+    "requireAnnotations": true
+  }
+}
