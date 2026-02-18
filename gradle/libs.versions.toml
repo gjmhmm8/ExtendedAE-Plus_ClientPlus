@@ -21,6 +21,7 @@ architectury = "5137938"
 jech = "7424367"
 modernUI = "6956345"
 eaep = "7327714"
+configuration = "4710266"
 kotlinForForge = "4.12.0"
 clothConfig = "11.1.136"
 
@@ -47,5 +48,6 @@ ftbTeams = { group = "dev.ftb.mods", name = "ftb-teams-forge", version.ref = "ft
 architectury = { group = "curse.maven", name = "architectury-api-419699", version.ref = "architectury" }
 modernUI = { group = "curse.maven", name = "modern-ui-352491", version.ref = "modernUI" }
 eaep = { group = "curse.maven", name = "eaep-1337639", version.ref = "eaep" }
+configuration = { group = "curse.maven", name = "configuration-444699", version.ref = "configuration" }
 kotlinForForge = { group = "thedarkcolour", name = "kotlinforforge", version.ref = "kotlinForForge" }
 clothConfig = { group = "me.shedaniel.cloth", name = "cloth-config-forge", version.ref = "clothConfig" }

@@ -5,6 +5,7 @@ dependencies {
     implementation fg.deobf(libs.glodium.get())
     implementation fg.deobf(libs.extendedAE.get())
     implementation fg.deobf(libs.eaep.get())
+    implementation fg.deobf(libs.configuration.get())
     implementation fg.deobf(libs.advancedAE.get())
     implementation fg.deobf(libs.ae2wt.get())
     implementation fg.deobf(libs.jade.get())

@@ -17,6 +17,8 @@ import com.fish.extendedae_plus_client.util.ComponentLocaleConverter;
 import com.mojang.datafixers.util.Pair;
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
 import net.minecraft.client.Minecraft;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.contents.TranslatableContents;
 import net.minecraft.network.protocol.game.ServerboundContainerClickPacket;
 import net.minecraft.world.inventory.ClickType;
 import net.minecraft.world.item.ItemStack;
@@ -175,14 +177,10 @@ public final class HelperPatternMoving {
 
         var packet = (HelperProvidersListS2CPacket) msg;
         final String localName = ComponentLocaleConverter.normalizeForCompare(uploadedGroup.name().getString());
-        final String enUsName = ComponentLocaleConverter.normalizeForCompare(
-                ComponentLocaleConverter.toLocaleString(uploadedGroup.name(), "en_us")
-        );
 
         for (int i = 0; i < packet.getIds().size(); ++i) {
-            String serverName = ComponentLocaleConverter.normalizeForCompare(packet.getNames().get(i));
-            if ((!enUsName.isEmpty() && serverName.equals(enUsName))
-                    || (!localName.isEmpty() && serverName.equals(localName))) {
+            var serverName=Component.Serializer.fromJson(packet.getNames().get(i));
+            if (serverName != null && !localName.isEmpty() && serverName.getString().equals(localName)) {
                 ModNetwork.CHANNEL.sendToServer(new UploadEncodedPatternToProviderC2SPacket(packet.getIds().get(i)));
                 CacheProvider.unmarkPattern(pattern);
                 CacheProvider.markPatternAlready(pattern);

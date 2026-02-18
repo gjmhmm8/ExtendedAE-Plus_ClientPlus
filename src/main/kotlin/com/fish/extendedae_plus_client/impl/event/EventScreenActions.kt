@@ -84,7 +84,7 @@ object EventScreenActions {
             // 写入 AE2 终端的搜索框
             if (AEConfig.instance().isUseExternalSearch) {
                 setSearchText(name)
-            } else if (Minecraft.getInstance().screen is HelperSearchField) {
+            } else if (Minecraft.getInstance().screen is HelperSearchField) {//TODO Fix 1201 SearchField
                 val screen = Minecraft.getInstance().screen as HelperSearchField
                 screen.getSearchField().value = name
                 screen.`eaep$setSearchText`(name)
