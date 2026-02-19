@@ -189,7 +189,9 @@ public abstract class MixinEncodingTerminal extends MEStorageMenu implements Bri
                     0, ClickType.QUICK_MOVE, this.getCarried(), new Int2ObjectOpenHashMap<>()
             ));
             if (mode == AutoUploadMode.AUTO_OPEN) {
-                WTLibHelper.openTerminalCyc(WTLibHelper.PATTERN_ACCESS);
+                if (!WTLibHelper.openTerminalCyc(WTLibHelper.PATTERN_ACCESS)) {
+                    WTLibHelper.openTerminalCyc(WTLibHelper.EX_PATTERN_ACCESS);
+                }
             }
         }
     }

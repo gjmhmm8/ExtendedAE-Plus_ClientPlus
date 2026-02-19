@@ -136,7 +136,6 @@ class LangZH(output: PackOutput) : LanguageProvider(output, ExtendedAEPlusClient
             .branch("NONE", "不处理")
             .branch("MERGE_ADJACENCY", "仅合并相邻")
             .branch("INDEPENDENCE", "完全独立")
-            .buildInto("配方转移合并模式")
         UtilKeyBuilder.ofDataGen(UtilKeyBuilder.message)
                             .addStr("pattern")
                             .addStr("already")

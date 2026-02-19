@@ -136,7 +136,6 @@ class LangEN(output: PackOutput) : LanguageProvider(output, ExtendedAEPlusClient
             .branch("NONE", "None")
             .branch("MERGE_ADJACENCY", "Merge Adjacency")
             .branch("INDEPENDENCE", "Independence")
-            .buildInto("Recipe Transfer Merge Mode")
 
         UtilKeyBuilder.BuilderDataGen.destroy("en_us")
     }

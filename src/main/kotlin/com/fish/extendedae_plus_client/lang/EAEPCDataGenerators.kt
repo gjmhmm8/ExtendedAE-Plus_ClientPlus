@@ -5,8 +5,9 @@ import net.minecraftforge.data.event.GatherDataEvent
 import net.minecraftforge.eventbus.api.SubscribeEvent
 import net.minecraftforge.fml.common.Mod
 
-@Mod.EventBusSubscriber(modid = ExtendedAEPlusClient.MODID)
+@Mod.EventBusSubscriber(modid = ExtendedAEPlusClient.MODID, bus = Mod.EventBusSubscriber.Bus.MOD)
 object EAEPCDataGenerators {
+    @JvmStatic
     @SubscribeEvent
     fun register(event: GatherDataEvent) {
         val generator = event.generator

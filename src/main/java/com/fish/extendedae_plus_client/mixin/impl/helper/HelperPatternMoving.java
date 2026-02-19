@@ -36,11 +36,13 @@ public final class HelperPatternMoving {
     private boolean perCompleted=false;
     public static IPatternDetails pattern = null;
     public static PatternContainerGroup uploadedGroup = null;
+    public static HelperPatternMoving INSTANCE = null;
 
     public HelperPatternMoving(AEBaseScreen<?> host) {
         this.host = host;
         this.patterns = new ArrayList<>();
         this.cacheUsedSlots = new HashMap<>();
+        INSTANCE = this;
     }
 
     public void onClose() {
@@ -49,6 +51,7 @@ public final class HelperPatternMoving {
         for(var i:perSuccess.entrySet()){
             CacheProvider.markPattern(i.getKey(),i.getValue());
         }
+        INSTANCE = null;
     }
 
     public boolean isEmpty() {
@@ -91,13 +94,16 @@ public final class HelperPatternMoving {
 
         if (this.patterns.isEmpty()) {
             this.perCompleted = true;
-            CacheProvider.clearPattern();
         }
     }
 
     private void filterPattern() {
         if (Minecraft.getInstance().player == null) return;
-        this.onClose();
+        // Do not clear CacheProvider mapping here: AUTO_OPEN relies on markPattern() data
+        // produced in the encoding screen to resolve target providers by pattern details.
+        this.cacheUsedSlots.clear();
+        this.patterns.clear();
+        this.cache.clear();
 
         var inv = Minecraft.getInstance().player.getInventory().items;
         for (int index = 0; index < inv.size(); index++) {

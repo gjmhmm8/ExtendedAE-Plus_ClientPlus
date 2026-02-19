@@ -4,3 +4,4 @@
 /.kotlin/
 /build/
 /.gradle/
+/src/generated/resources/.cache/
