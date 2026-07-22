@@ -6,6 +6,7 @@ import com.electronwill.nightconfig.core.file.FileConfig.builder
 import com.electronwill.nightconfig.toml.TomlFormat.instance
 import com.fish.extendedae_plus_client.config.EAEPCConfig
 import com.fish.extendedae_plus_client.integration.ContextModLoaded
+import com.fish.extendedae_plus_client.integration.recipeViewer.jei.HelperJeiRuntime
 import com.fish.extendedae_plus_client.mixin.impl.bridge.BridgePlanToEncode
 import com.google.gson.GsonBuilder
 import com.google.gson.JsonObject
@@ -16,6 +17,7 @@ import dev.emi.emi.api.stack.EmiStack
 import dev.emi.emi.jemi.JemiRecipe
 import it.unimi.dsi.fastutil.ints.Int2ObjectRBTreeMap
 import it.unimi.dsi.fastutil.ints.Int2ObjectSortedMap
+import mezz.jei.api.recipe.RecipeType
 import net.minecraft.client.Minecraft
 import net.minecraft.client.player.LocalPlayer
 import net.minecraft.core.registries.BuiltInRegistries
@@ -108,7 +110,7 @@ object EAEEncodingHelper {
     }
 
     fun collectRecipeKeyword(name: String, priority: Int) {
-        if(keywords.contains(name))return
+        if (keywords.contains(name)) return
         keywords.add(name)
         val group = Component.literal(name)
         recipeKeywords[priority] = group
@@ -157,19 +159,64 @@ object EAEEncodingHelper {
                         }
                 }
 
-                workstationKeys.forEachIndexed { index, str -> collectRecipeKeyword(str,10 + index) }
+                workstationKeys.forEachIndexed { index, str -> collectRecipeKeyword(str, 10 + index) }
+            }
+        }
+        val helperJeiRuntime = HelperJeiRuntime.get()
+        if (!ContextModLoaded.emi.isLoaded && helperJeiRuntime != null) {
+            val recipeManager = helperJeiRuntime.recipeManager
+            try {
+                val type = when (recipeBase) {
+                    is RecipeHolder<*> -> recipeBase.value.type
+                    is Recipe<*> -> recipeBase.type
+                    else -> null
+                }
+                if (type != null) {
+                    val workstationKeys = ArrayList<String>()
+                    val lookup = recipeManager.createRecipeCatalystLookup(RecipeType.createFromVanilla(type))
+                    lookup.itemStack.forEach { stack ->
+                        val name = stack.hoverName
+                        val key = name.string ?: return@forEach
+                        workstationKeys.add(key)
+                    }
+
+                    workstationKeys.forEachIndexed { index, str -> collectRecipeKeyword(str, 10 + index) }
+                }
+            } catch (e: Exception) {
+//                e.printStackTrace()
+            }
+            
+            if (recipeKeywords.isEmpty()) {
+                val clazz = when (recipeBase) {
+                    is RecipeHolder<*> -> recipeBase.value.javaClass
+                    is Recipe<*> -> recipeBase.javaClass
+                    else -> null
+                }
+                if (clazz != null) {
+                    val type = helperJeiRuntime.jeiHelpers.allRecipeTypes.filter { type -> type.recipeClass == clazz }.findFirst()
+                    val workstationKeys = ArrayList<String>()
+                    type.ifPresent { type ->
+                        val lookup = recipeManager.createRecipeCatalystLookup(type)
+                        lookup.itemStack.forEach { stack ->
+                            val name = stack.hoverName
+                            val key = name.string ?: return@forEach
+                            workstationKeys.add(key)
+                        }
+                    }
+                    workstationKeys.forEachIndexed { index, str -> collectRecipeKeyword(str, 10 + index) }
+                }
             }
         }
 
         if (recipeBase is RecipeHolder<*>) {
             val key = BuiltInRegistries.RECIPE_TYPE.getKey(recipeBase.value.type)
-            if(key!=null) keys[0] = key.toString()
-            else keys[0]=recipeBase.value.type.toString()
+            if (key != null) keys[0] = key.toString()
+            else keys[0] = recipeBase.value.type.toString()
             keys[1000] = recipeBase.id().path.split("/")[0]
-        } else if(recipeBase is Recipe<*>){
+        } else if (recipeBase is Recipe<*>) {
             val key = BuiltInRegistries.RECIPE_TYPE.getKey(recipeBase.type)
-            if(key!=null) keys[0] = key.toString()
-            else keys[0]=recipeBase.type.toString()
+            if (key != null) keys[0] = key.toString()
+            else keys[0] = recipeBase.type.toString()
         }
 
         keys.entries.stream()
@@ -181,11 +228,11 @@ object EAEEncodingHelper {
                     entry.key
                 )
             }
-        keys[0]?.let { text -> findMapping(text)?.let { text -> recipeKeywords[1]= Component.literal(text) } }
+        keys[0]?.let { text -> findMapping(text)?.let { text -> recipeKeywords[1] = Component.literal(text) } }
     }
 
     @JvmStatic
-    fun tiggerAutoEncoding(){
+    fun tiggerAutoEncoding() {
         val player: LocalPlayer = Minecraft.getInstance().player ?: return
         if (player.containerMenu !is BridgePlanToEncode) return
         if (!EAEPCConfig.autoEncodingTiggerMode.get().shouldTigger()) return
@@ -193,10 +240,10 @@ object EAEEncodingHelper {
     }
 
     @JvmStatic
-    fun matches(keyWord: Component,nameKey: String, i18nKey: String,icon: String): Boolean {
+    fun matches(keyWord: Component, nameKey: String, i18nKey: String, icon: String): Boolean {
 
-        return nameMatches(keyWord.string, nameKey)||
-                i18nKeyMatches(keyWord.string, i18nKey)||
+        return nameMatches(keyWord.string, nameKey) ||
+                i18nKeyMatches(keyWord.string, i18nKey) ||
                 iconKeyMatches(keyWord.string, icon)
 
     }

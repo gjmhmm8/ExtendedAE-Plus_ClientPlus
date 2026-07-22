@@ -9,12 +9,14 @@ import appeng.helpers.InventoryAction
 import appeng.menu.me.common.MEStorageMenu
 import com.fish.extendedae_plus_client.ExtendedAEPlusClient
 import com.fish.extendedae_plus_client.config.EAEPCKeyMapping
+import com.fish.extendedae_plus_client.integration.ContextModLoaded
 import com.fish.extendedae_plus_client.integration.recipeViewer.HelperRecipeViewer.hoveredStacks
 import com.fish.extendedae_plus_client.integration.recipeViewer.HelperRecipeViewer.isCheatMode
 import com.fish.extendedae_plus_client.integration.recipeViewer.HelperRecipeViewer.matchesKey
 import com.fish.extendedae_plus_client.integration.recipeViewer.HelperRecipeViewer.setSearchText
 import com.fish.extendedae_plus_client.mixin.impl.helper.HelperSearchField
 import com.mojang.datafixers.util.Pair
+import de.mari_023.ae2wtlib.networking.PickBlockPacket
 import net.minecraft.client.Minecraft
 import net.minecraft.world.inventory.Slot
 import net.neoforged.api.distmarker.Dist
@@ -22,6 +24,7 @@ import net.neoforged.bus.api.SubscribeEvent
 import net.neoforged.fml.common.EventBusSubscriber
 import net.neoforged.neoforge.client.event.InputEvent
 import net.neoforged.neoforge.client.event.ScreenEvent
+import net.neoforged.neoforge.network.PacketDistributor
 import org.lwjgl.glfw.GLFW
 
 @EventBusSubscriber(modid = ExtendedAEPlusClient.MODID, value = [Dist.CLIENT])
@@ -33,31 +36,35 @@ object EventScreenActions {
         if (Minecraft.getInstance().player == null) return
         if (Minecraft.getInstance().screen == null) return
 
-        val menu = Minecraft.getInstance().player!!.containerMenu
-        if (menu !is MEStorageMenu) return
-
         if (isCheatMode) return
-
         if (event.action != GLFW.GLFW_PRESS) {
             if (isPulled) event.setCanceled(true)
             isPulled = false
             return
         }
-
-        val infoStack = findHoveredStack(menu) ?: return
-
         val pulled: Pair<Boolean, Boolean>? = matchesKey(event.button)
-        if (pulled != null) {
-            menu.handleInteraction(
-                infoStack.getSecond(), getAction(infoStack, pulled)
-            )
-            isPulled = true
-            return
-        }
+        if (event.button != GLFW.GLFW_MOUSE_BUTTON_MIDDLE && pulled == null) return
+        val menu = Minecraft.getInstance().player!!.containerMenu
+        if (menu is MEStorageMenu) {
+            val infoStack = findHoveredStack(menu) ?: return
 
-        if (event.button == GLFW.GLFW_MOUSE_BUTTON_MIDDLE) {
-            menu.handleInteraction(infoStack.getSecond(), InventoryAction.AUTO_CRAFT)
-            event.setCanceled(true)
+            if (pulled != null) {
+                menu.handleInteraction(
+                    infoStack.getSecond(), getAction(infoStack, pulled)
+                )
+                isPulled = true
+                return
+            }
+
+            if (event.button == GLFW.GLFW_MOUSE_BUTTON_MIDDLE) {
+                menu.handleInteraction(infoStack.getSecond(), InventoryAction.AUTO_CRAFT)
+                event.setCanceled(true)
+            }
+        } else if (ContextModLoaded.ae2wtlib.isLoaded){
+            val item = hoveredStacks.firstOrNull()?.what
+            if (item !is AEItemKey) return
+            PacketDistributor.sendToServer(PickBlockPacket(item.toStack()))
+            isPulled = true
         }
     }
 
@@ -112,8 +119,7 @@ object EventScreenActions {
     }
 
     private fun getAction(
-        infoStack: Pair<AEKey, Long>,
-        pulled: Pair<Boolean, Boolean>
+        infoStack: Pair<AEKey, Long>, pulled: Pair<Boolean, Boolean>
     ): InventoryAction {
         return if (infoStack.getFirst() is AEItemKey) {
             if (pulled.getFirst() && pulled.getSecond()) InventoryAction.SHIFT_CLICK
@@ -124,8 +130,7 @@ object EventScreenActions {
         } else {
             if (pulled.getFirst() && pulled.getSecond()) InventoryAction.FILL_ENTIRE_ITEM_MOVE_TO_PLAYER
             else if (pulled.getFirst()) InventoryAction.FILL_ENTIRE_ITEM
-            else if (pulled.getSecond())
-                InventoryAction.FILL_ITEM_MOVE_TO_PLAYER
+            else if (pulled.getSecond()) InventoryAction.FILL_ITEM_MOVE_TO_PLAYER
             else InventoryAction.FILL_ITEM
         }
     }
